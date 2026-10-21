@@ -9,8 +9,6 @@ import {
   ShieldAlert,
   ChevronLeft,
   ChevronRight,
-  Clock,
-  User,
 } from 'lucide-react';
 import { api } from '../../../lib/api';
 import { AdminAuditLog, Pagination } from '../../../types';

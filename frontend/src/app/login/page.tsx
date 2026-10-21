@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Store, Lock, Mail, Loader2, ArrowRight, UserCheck, ShieldAlert, Shield } from 'lucide-react';
+import { Store, Lock, Mail, Loader2, UserCheck, ShieldAlert, Shield } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/Toast';
 import { ApiError } from '../../lib/api';

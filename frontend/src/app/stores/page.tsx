@@ -1,22 +1,21 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
 import {
-  Search,
-  SlidersHorizontal,
+  AlertCircle,
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
-  Store as StoreIcon,
-  AlertCircle,
-  Filter,
+  Search,
+  SlidersHorizontal,
+  Store as StoreIcon
 } from 'lucide-react';
-import { api, ApiError } from '../../lib/api';
-import { Store, Pagination, StoreStats } from '../../types';
-import { StoreCard } from '../../components/StoreCard';
+import { useEffect, useState } from 'react';
 import { RatingModal } from '../../components/RatingModal';
-import { useAuth } from '../../context/AuthContext';
+import { StoreCard } from '../../components/StoreCard';
 import { useToast } from '../../components/Toast';
+import { useAuth } from '../../context/AuthContext';
+import { api, ApiError } from '../../lib/api';
+import { Pagination, Store, StoreStats } from '../../types';
 
 export default function StoresPage() {
   const { user } = useAuth();
@@ -57,7 +56,7 @@ export default function StoresPage() {
           setAvailableCities(res.data.cities || []);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   // Debounce search input
@@ -123,11 +122,11 @@ export default function StoresPage() {
       prev.map((s) =>
         s.id === storeId
           ? {
-              ...s,
-              myRating: rating,
-              averageRating: storeStats?.averageRating ?? s.averageRating,
-              ratingCount: storeStats?.ratingCount ?? s.ratingCount,
-            }
+            ...s,
+            myRating: rating,
+            averageRating: storeStats?.averageRating ?? s.averageRating,
+            ratingCount: storeStats?.ratingCount ?? s.ratingCount,
+          }
           : s
       )
     );

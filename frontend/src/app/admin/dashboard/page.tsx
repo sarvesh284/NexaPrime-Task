@@ -13,7 +13,6 @@ import {
   Building,
   ArrowRight,
   Loader2,
-  TrendingUp,
 } from 'lucide-react';
 import { api } from '../../../lib/api';
 import { AdminKpis } from '../../../types';

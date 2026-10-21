@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   LayoutDashboard,
-  Store as StoreIcon,
   Star,
   Users,
   TrendingUp,
@@ -19,14 +18,13 @@ import {
   BarChart3,
   Filter,
 } from 'lucide-react';
-import { api, ApiError } from '../../../lib/api';
+import { api } from '../../../lib/api';
 import {
   OwnerDashboardData,
   RatingItem,
   Pagination,
   OwnerAnalyticsData,
 } from '../../../types';
-import { StarRating } from '../../../components/StarRating';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../components/Toast';
 

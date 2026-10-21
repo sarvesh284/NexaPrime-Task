@@ -1,47 +1,75 @@
-# Store Rating Platform — Production-Ready Full-Stack Web Application
+# Store Rating Platform — Enterprise Full-Stack Web Application
 
-A secure, scalable, and responsive full-stack Store Rating Web Application engineered for the developer internship challenge. The platform empowers regular users to discover registered stores and submit 1–5 star ratings, while providing store owners with real-time business analytics, score distributions, and customer feedback logs.
+A secure, high-performance, and responsive full-stack Store Rating Web Application engineered with enterprise-grade architecture. The platform empowers consumers to discover stores, submit 1–5 star ratings with written feedback, vote on helpful reviews, and manage personal wishlists. Store owners gain deep operational visibility through interactive daily trend analytics, rating distributions, and formula-injection-safe CSV exports. Platform administrators control system integrity via platform KPIs, user account management, store creation & owner assignment, review moderation, and tamper-resistant administrative audit logging.
 
 ---
 
 ## 🌟 Key Features
 
-### For Normal Users
-- **Browse & Search:** Discover registered, active stores with debounced keyword search.
-- **Dynamic Sorting:** Sort stores by Name (A–Z / Z–A), Average Rating (High/Low), and Total Rating Count.
-- **Strict 1–5 Star Rating:** Submit integer ratings from 1 to 5 with real-time feedback and descriptive sentiment labels.
-- **Atomic Rating Updates:** Easily modify an existing rating; updates preserve a single rating document per user per store.
-- **Personalized Store State:** View your own rating on each store card and detail page alongside the community average score.
+### 1. Role-Based Access Control (RBAC) & Platform Admin (Feature A)
+- **Three-Tier Role Hierarchy:** Enforces strict role boundaries (`USER`, `STORE_OWNER`, `ADMIN`) across all API routes and frontend navigations.
+- **Admin Control Console:**
+  - **Platform-Wide KPIs:** Live metrics for Total Registered Users, Total Store Owners, Total Active Stores, Total Ratings Submitted, and Cumulative Platform Average.
+  - **User Management:** Paginated user directory with search by name/email, filtering by role and account status, and account deactivation/reactivation toggles (with built-in self-deactivation protection).
+  - **Store Management & Assignment:** Create new stores with category and city attributes, update store profiles, toggle active status, and assign/reassign store ownership to verified store owners.
+  - **Content Moderation Queue:** Review reported ratings with reasons (`SPAM`, `OFFENSIVE`, `HARASSMENT`, `CONFLICT_OF_INTEREST`, `OTHER`), with one-click actions to Hide Review (auto-resolving reports and adjusting store rating aggregates), Dismiss Report, or Restore Review.
+  - **Audit Logging:** Every administrative action is automatically logged with actor ID, email, role, action type, target entity, target ID, client IP, user agent, timestamp, and metadata. Secrets, passwords, and tokens are strictly excluded from audit logs.
 
-### For Store Owners
-- **Owner Analytics Dashboard:** Monitor owned stores in a private, role-protected dashboard.
-- **Summary Metrics:** Total stores managed, overall cumulative average rating, and total customer ratings received.
-- **Rating Distribution Visualizer:** Visual distribution breakdown across 5-star, 4-star, 3-star, 2-star, and 1-star ratings.
-- **Customer Ratings Table:** Paginated customer review logs displaying Customer Name, Email, Store Name, Rating Value, and Date.
-- **Filter & Search:** Filter ratings by specific owned store or search by customer name/email.
-- **Role Isolation:** Enforced authorization ensures owners cannot access analytics or ratings for stores they do not own.
+### 2. Written Review Comments & Content Moderation (Feature B)
+- **Written Feedback:** Optional written comments up to 500 characters accompanied by a live character counter and client/server validation.
+- **Atomic Rating Updates:** Submitting an updated rating updates the existing record rather than creating a duplicate document, ensuring strict one-rating-per-user-per-store integrity.
+- **Review Feed & Star Distribution:** Displays rating value, written comment, submission date, and user display name, alongside a visual 1–5 star rating distribution breakdown.
+- **Review Reporting Workflow:** Authenticated users can report inappropriate reviews with a designated reason. Duplicate reports on the same review by the same user are rejected (`409 Conflict`).
+- **Review Moderation Policy:** Moderated or hidden reviews are automatically excluded from public listings and store rating aggregate calculations.
+
+### 3. Account Security, Email Verification & Password Recovery (Feature C)
+- **Cryptographic Email Verification:** Accounts receive a SHA-256 hashed verification token valid for 24 hours. Accounts are marked verified only after clicking the link.
+- **Self-Service Password Reset:**
+  - Forgot password endpoint generates a 1-hour expiration SHA-256 hashed token.
+  - Generic responses prevent email enumeration attacks (`200 OK` regardless of whether the email is registered).
+  - Interactive password reset interface with real-time visual rule checklists.
+- **Immediate Session Invalidation:** Resetting a password increments the user's `tokenVersion`, instantly invalidating all existing JWT cookies across all browsers and devices.
+- **Configurable Email Delivery:** Backed by Nodemailer with configurable SMTP credentials. In local development or testing without SMTP credentials, verification and reset links are safely emitted to the console without crashing or failing account workflows.
+
+### 4. Advanced Store Owner Analytics & Reporting (Feature D)
+- **Scoped Store Owner Dashboard:** Restricts all metrics and ratings strictly to establishments owned by the authenticated user (`ownerId` verification).
+- **Comprehensive KPI Overview:** Total stores managed, total visible customer ratings, overall average store score, and star breakdown (1 to 5 stars).
+- **Interactive Daily Trend Charts:** Visual bar chart rendering rating volume and score progression over selectable date ranges (Last 7 Days, Last 30 Days, Last 90 Days, or All Time).
+- **Multi-Store & Star Filters:** Filter analytics and rating tables by specific owned stores and rating star values.
+- **Formula-Injection-Safe CSV Export:** One-click CSV export of customer rating logs applying all active filters. Protects against spreadsheet formula injection by sanitizing cells starting with `=`, `+`, `-`, `@`, or `\t`.
+
+### 5. Rating Quality & Store Discovery Enhancements (Features E & F)
+- **Bayesian Adjusted Rating Score:** Optional Bayesian-weighted rating score calculated to prevent newly registered stores with one 5-star rating from outranking established favorites:
+  $$\text{Adjusted Rating} = \left(\frac{v}{v + m}\right) \times R + \left(\frac{m}{v + m}\right) \times C$$
+  Where $R$ is the store average, $v$ is the eligible rating count, $C$ is the platform average (defaults to 3.0), and $m$ is the minimum confidence threshold ($m = 5$).
+- **Helpful Review Voting:** Authenticated users can upvote helpful reviews with an atomic toggle (vote/unvote). Users are prevented from voting on their own reviews.
+- **Multi-Attribute Store Discovery:** Filter stores by Category (e.g., Grocery, Electronics, Cafe, Books, Health), City (e.g., San Francisco, New York, Seattle, Austin), and Minimum Rating (1+ to 5 stars).
+- **Personal Wishlist / Favorites:** Authenticated users can favorite stores with instant toggle from store cards and manage them on a dedicated `/favorites` page.
+- **Search & Sorting:** Debounced search by store name and dynamic sorting by Name, Average Rating, Rating Count, or Bayesian Recommended Score.
 
 ---
 
 ## 🛠️ Technology Stack
 
-| Component | Technology | Rationale |
+| Layer | Technology | Details |
 | :--- | :--- | :--- |
-| **Frontend Framework** | **Next.js (App Router)** | Modern React server & client components with streaming and SEO optimization. |
-| **Frontend Styling** | **Tailwind CSS** | Sleek dark-mode aesthetic with custom animations and responsive layouts. |
-| **Form Management** | **React Hook Form + Zod** | Declarative form handling with client-side validation mirroring backend rules. |
-| **Icons** | **Lucide React** | Lightweight, accessible, consistent modern icons. |
-| **Backend Framework** | **Node.js + Express.js** | Fast, robust, unopinionated REST API. |
-| **Language** | **TypeScript (Strict Mode)** | Full end-to-end type safety across both frontend and backend. |
-| **Database** | **MongoDB Atlas + Mongoose** | Document database with compound indexing and aggregation pipelines. |
-| **Security & Auth** | **JWT in HttpOnly Cookies** | Secure token storage in HttpOnly, SameSite cookies with bcrypt hashing (12 rounds). |
-| **API Security** | **Helmet, CORS, Rate Limit** | Request body size limits, CORS origin protection, CSRF headers, and rate limiting. |
+| **Frontend Framework** | **Next.js 16 (App Router)** | Modern React 19 server & client components with Turbopack, static prerendering, and partial prerendering. |
+| **Frontend Styling** | **Tailwind CSS v4** | Sleek dark-mode aesthetic with responsive layouts, accessible color contrast, and custom CSS variables. |
+| **Icons & UI** | **Lucide React** | Accessible, lightweight icon system. |
+| **Forms & Validation** | **React Hook Form + Zod** | Client-side validation mirroring backend schema rules with live character counters and visual checklists. |
+| **Backend Framework** | **Node.js + Express.js** | Modular architecture with strict controller-service-model separation. |
+| **Language** | **TypeScript (Strict Mode)** | 100% type safety across frontend and backend codebases. |
+| **Database & ODM** | **MongoDB + Mongoose** | Schema validation, compound indexing, aggregation pipelines, and atomic updates. |
+| **Authentication** | **JWT in HttpOnly Cookies** | Secure token storage in `HttpOnly`, `SameSite=Lax`, and `Secure` cookies with 12-round `bcryptjs` hashing. |
+| **Session Control** | **Token Version Invalidation** | Integer `tokenVersion` stored in user records; incrementing revokes all issued tokens across devices. |
+| **Email Service** | **Nodemailer** | SMTP transporter with development console fallback for headless local verification and password recovery. |
 | **API Documentation** | **Swagger UI / OpenAPI 3.0** | Interactive API documentation accessible at `/api/v1/docs`. |
-| **Automated Testing** | **Vitest + Supertest** | 29 integration and unit tests covering auth, stores, ratings, and owner permissions. |
+| **Automated Testing** | **Vitest + Supertest** | 52 automated tests in 9 test suites covering auth, discovery, ratings, reviews, owner, admin, and email recovery. |
+| **Deployment** | **Vercel + Render + Atlas** | Configured for Vercel (Frontend), Render (Backend), and MongoDB Atlas (Database). |
 
 ---
 
-## 📂 Project Structure
+## 📂 Project Architecture
 
 ```text
 nexaprime-project/
@@ -50,48 +78,74 @@ nexaprime-project/
 │       └── ci.yml             # GitHub Actions CI workflow (lint, test, build)
 ├── backend/
 │   ├── src/
-│   │   ├── config/            # Environment validation (Zod) & MongoDB connection
+│   │   ├── config/            # Zod environment validation & MongoDB connection
 │   │   │   ├── env.ts
 │   │   │   └── db.ts
-│   │   ├── controllers/       # HTTP controllers (auth, store, rating, owner, health)
-│   │   ├── services/          # Business logic & MongoDB aggregation pipelines
-│   │   ├── models/            # Mongoose schemas (User, Store, Rating)
-│   │   ├── routes/            # Express routes mounted under /api/v1
-│   │   ├── middleware/        # Auth, role check, Zod validator, rate limiter, CSRF, error handler
-│   │   ├── validators/        # Zod input schemas (register, login, rating, query)
-│   │   ├── utils/             # JWT, password hashing, standard API response
-│   │   ├── types/             # Backend TypeScript interfaces
-│   │   ├── scripts/           # Safe database seed script (seed.ts)
+│   │   ├── controllers/       # HTTP controllers (auth, store, rating, owner, admin, health)
+│   │   ├── services/          # Business logic, aggregation pipelines, email, audit logging
+│   │   │   ├── admin.service.ts
+│   │   │   ├── auth.service.ts
+│   │   │   ├── email.service.ts
+│   │   │   ├── owner.service.ts
+│   │   │   ├── rating.service.ts
+│   │   │   └── store.service.ts
+│   │   ├── models/            # Mongoose models (User, Store, Rating, Report, AuditLog)
+│   │   │   ├── user.model.ts
+│   │   │   ├── store.model.ts
+│   │   │   ├── rating.model.ts
+│   │   │   ├── report.model.ts
+│   │   │   └── auditLog.model.ts
+│   │   ├── routes/            # Express routers mounted under /api/v1
+│   │   │   ├── admin.routes.ts
+│   │   │   ├── auth.routes.ts
+│   │   │   ├── docs.routes.ts
+│   │   │   ├── health.routes.ts
+│   │   │   ├── owner.routes.ts
+│   │   │   ├── rating.routes.ts
+│   │   │   └── store.routes.ts
+│   │   ├── middleware/        # Auth, role check, rate limiting, csrf, error handler
+│   │   ├── validators/        # Zod input validation schemas
+│   │   ├── utils/             # JWT, password hashing, standard responses
+│   │   ├── types/             # TypeScript definitions
+│   │   ├── scripts/           # Seed script (seed.ts)
 │   │   ├── app.ts             # Express application factory
 │   │   └── server.ts          # Server entrypoint with graceful shutdown
 │   ├── tests/                 # Supertest integration test suites
 │   │   ├── setup.ts
+│   │   ├── admin.test.ts
 │   │   ├── auth.test.ts
-│   │   ├── store.test.ts
+│   │   ├── discovery.test.ts
+│   │   ├── e2e.workflow.test.ts
+│   │   ├── email.test.ts
+│   │   ├── owner.test.ts
 │   │   ├── rating.test.ts
-│   │   └── owner.test.ts
+│   │   ├── review.test.ts
+│   │   └── store.test.ts
 │   ├── .env.example
-│   ├── render.yaml            # Render deployment blueprint
+│   ├── package.json
 │   ├── tsconfig.json
-│   └── package.json
+│   └── vitest.config.ts
 ├── frontend/
 │   ├── src/
 │   │   ├── app/               # Next.js App Router pages
 │   │   │   ├── page.tsx       # Landing page with hero & store showcase
-│   │   │   ├── login/         # Sign-in page with 1-click demo login
-│   │   │   ├── register/      # Registration page with live rule checklists
-│   │   │   ├── stores/        # Store directory & [id] detail page
-│   │   │   ├── owner/         # Store owner analytics dashboard
-│   │   │   ├── layout.tsx     # Root layout with providers & navigation
-│   │   │   └── not-found.tsx  # Custom 404 page
-│   │   ├── components/        # Reusable UI components (Navbar, Footer, StarRating, Modal, Toast)
+│   │   │   ├── login/         # Sign-in page with 1-click demo login & forgot password link
+│   │   │   ├── register/      # Registration page with live rule checklist
+│   │   │   ├── forgot-password/# Password recovery request page
+│   │   │   ├── reset-password/ # Password reset confirmation page with live checklist
+│   │   │   ├── verify-email/  # Account email verification confirmation page
+│   │   │   ├── favorites/     # User store favorites/wishlist page
+│   │   │   ├── stores/        # Store discovery directory & [id] detail page
+│   │   │   ├── owner/dashboard/# Store owner analytics, charts & CSV export
+│   │   │   └── admin/         # Admin portal (dashboard, users, stores, reports, audit logs)
+│   │   ├── components/        # UI components (Navbar, Footer, RatingModal, StoreCard, Toast, StarRating)
 │   │   ├── context/           # Session-aware AuthContext
 │   │   ├── lib/               # Reusable API fetch client with CSRF defense
 │   │   └── types/             # Frontend TypeScript interfaces
 │   ├── .env.example
-│   ├── vercel.json            # Vercel deployment configuration
+│   ├── package.json
 │   ├── tsconfig.json
-│   └── package.json
+│   └── vercel.json
 ├── .gitignore
 ├── package.json               # Monorepo root helper scripts
 └── README.md
@@ -99,46 +153,57 @@ nexaprime-project/
 
 ---
 
-## 🔒 Security Architecture
+## 👥 Role-Based Access Control (RBAC) Matrix
 
-1. **HttpOnly Cookie Authentication:** Authentication tokens are stored inside `HttpOnly`, `SameSite=Lax` cookies, preventing XSS access to tokens.
-2. **Password Security:** Salted and hashed using `bcryptjs` with 12 rounds. Password hashes are excluded by default via Mongoose `{ select: false }` and `toJSON` transforms.
-3. **Strict Privilege Separation:**
-   - Public registration **always** creates a `USER` account. Client-supplied role or store IDs are strictly rejected.
-   - Store Owner accounts can only be created via controlled provisioning or seed scripts.
-   - Store owners cannot rate stores (`403 Forbidden`).
-   - Normal users cannot access owner dashboard endpoints (`403 Forbidden`).
-   - Store owners can only view ratings and analytics for stores they own (verified by session `ownerId`).
-4. **NoSQL Injection Defense:** All queries sanitize inputs with typed Mongoose models and Zod schema validations.
-5. **CSRF Protection:** State-changing requests enforce trusted origin checks and custom `X-Requested-With` headers.
-6. **Rate Limiting:** Auth endpoints (`/auth/login`, `/auth/register`) are rate-limited to mitigate credential stuffing and brute-force attacks.
-7. **Production Error Masking:** Centralized error handler catches duplicate keys (`E11000`), validation errors, and never exposes stack traces in production.
+| Feature / Action | `USER` | `STORE_OWNER` | `ADMIN` |
+| :--- | :---: | :---: | :---: |
+| Browse Active Stores & View Details | ✅ | ✅ | ✅ |
+| Filter by Category, City, & Rating | ✅ | ✅ | ✅ |
+| Toggle Store Favorites / Wishlist | ✅ | ✅ | ✅ |
+| Submit / Modify Store Rating (1–5) | ✅ | ❌ (*Forbidden*) | ❌ (*Forbidden*) |
+| Add Written Review Comment (500 chars) | ✅ | ❌ (*Forbidden*) | ❌ (*Forbidden*) |
+| Vote Helpful on Customer Reviews | ✅ | ✅ | ✅ |
+| Report Inappropriate Reviews | ✅ | ✅ | ✅ |
+| Verify Email & Reset Password | ✅ | ✅ | ✅ |
+| Access Store Owner Dashboard | ❌ (*Forbidden*) | ✅ | ❌ (*Forbidden*) |
+| View Rating Trends & Distributions | ❌ (*Forbidden*) | ✅ | ❌ (*Forbidden*) |
+| Export Owner Ratings as CSV | ❌ (*Forbidden*) | ✅ | ❌ (*Forbidden*) |
+| Access Admin Management Portal | ❌ (*Forbidden*) | ❌ (*Forbidden*) | ✅ |
+| View Platform-Wide KPIs & Audit Logs | ❌ (*Forbidden*) | ❌ (*Forbidden*) | ✅ |
+| Activate / Deactivate User Accounts | ❌ (*Forbidden*) | ❌ (*Forbidden*) | ✅ |
+| Create Stores & Assign Store Owners | ❌ (*Forbidden*) | ❌ (*Forbidden*) | ✅ |
+| Moderate Reports (Hide / Restore Reviews) | ❌ (*Forbidden*) | ❌ (*Forbidden*) | ✅ |
 
 ---
 
-## 📋 Validation Rules Matrix
+## 📋 Input Validation Matrix
 
 | Field | Rule | Backend Enforcement | Frontend Enforcement |
 | :--- | :--- | :--- | :--- |
-| **Name** | Required, 20–60 chars, trimmed, non-empty | Zod `.trim().min(20).max(60)` | React Hook Form + Zod + Live char counter |
-| **Email** | Required, valid format, trimmed, lowercase, unique | Zod `.email()`, MongoDB unique index | React Hook Form + Zod |
-| **Address** | Required, max 400 chars, trimmed | Zod `.trim().max(400)` | React Hook Form + Zod + Char counter |
-| **Password** | 8–16 chars, 1+ uppercase letter, 1+ special character | Regex `^(?=.*[A-Z])(?=.*[!@#$%^&*...]).{8,16}$` | Interactive live visual checklist |
+| **Name** | Required, 20–60 chars, trimmed | Zod `.trim().min(20).max(60)` | React Hook Form + live char counter |
+| **Email** | Required, valid email format, trimmed, lowercase, unique | Zod `.email()`, MongoDB unique index | React Hook Form + email validation |
+| **Address** | Required, max 400 chars, trimmed | Zod `.trim().max(400)` | React Hook Form + char counter |
+| **Password** | 8–16 chars, 1+ uppercase letter, 1+ special character | Regex `^(?=.*[A-Z])(?=.*[!@#$%^&*...]).{8,16}$` | Interactive live checklist |
 | **Rating** | Integer 1 to 5 only | Zod `.int().min(1).max(5)` | 5-star interactive picker |
+| **Comment** | Optional, max 500 chars, trimmed, sanitized | Zod `.trim().max(500).optional()` | Textarea with live 500-char counter |
+| **Report Reason** | Enum (`SPAM`, `OFFENSIVE`, `HARASSMENT`, `CONFLICT_OF_INTEREST`, `OTHER`) | Zod `.enum(...)` | Selection dropdown with reason options |
+| **Category** | Optional store category (e.g., Grocery, Cafe, Books) | Zod `.trim().max(50).optional()` | Dropdown filter & modal input |
+| **City** | Optional store city (e.g., San Francisco, New York) | Zod `.trim().max(100).optional()` | Dropdown filter & modal input |
 
 ---
 
-## 🔑 Demo Accounts
+## 🔑 Pre-Configured Demo Accounts
 
-The database includes pre-configured demo accounts for testing:
+The database includes ready-to-test accounts for every role:
 
 | Role | Email | Password | Description |
 | :--- | :--- | :--- | :--- |
-| **Normal User** | `sarvesh.user@example.com` | `Password@123` | Can browse stores, submit ratings (1–5), update ratings. |
-| **Store Owner** | `sarvesh.owner@example.com` | `Password@123` | Owns 4 establishments; has access to the owner dashboard. |
-| **Reviewer** | `reviewer@example.com` | `Password@123` | Independent community reviewer account. |
+| **Platform Admin** | `sarvesh.admin@example.com` | `Password@123` | Full administrative control, KPI dashboard, moderation queue, audit logs. |
+| **Store Owner** | `sarvesh.owner@example.com` | `Password@123` | Owns 4 establishments; has access to owner analytics, trends, and CSV export. |
+| **Normal User** | `sarvesh.user@example.com` | `Password@123` | Normal consumer; can browse stores, rate 1–5, write comments, upvote reviews. |
+| **Reviewer** | `reviewer@example.com` | `Password@123` | Independent community reviewer account with sample ratings and comments. |
 
-> **Tip:** The `/login` page includes **1-Click Demo Login** buttons for instant access without manual typing.
+> **Tip:** The `/login` page includes **1-Click Demo Login** buttons for instant access to Admin, Store Owner, or User accounts without typing!
 
 ---
 
@@ -178,7 +243,7 @@ cd ..
 ```
 
 ### 3. Seed Database
-Run the seed script to initialize stores, demo users, and realistic ratings:
+Run the seed script to initialize stores, demo users across all roles, categories, cities, realistic ratings, review comments, and moderation reports:
 ```bash
 npm run seed
 # Or from backend directory:
@@ -186,7 +251,7 @@ cd backend && npm run seed
 ```
 
 ### 4. Start Development Servers
-Run the backend and frontend simultaneously:
+Run backend and frontend concurrently:
 
 **Terminal 1 (Backend - Port 5000):**
 ```bash
@@ -200,8 +265,8 @@ cd frontend
 npm run dev
 ```
 
-Visit **http://localhost:3000** in your browser.
-API Swagger documentation is available at **http://localhost:5000/api/v1/docs**.
+- Web Application: **http://localhost:3000**
+- Interactive Swagger API Documentation: **http://localhost:5000/api/v1/docs**
 
 ---
 
@@ -215,38 +280,85 @@ cd backend
 npm test
 ```
 
-### Test Coverage Summary:
-- **Authentication:** Registration, password complexity, duplicate rejection, role tampering immunity, login, wrong password, inactive account rejection, logout.
-- **Store Discovery:** Active filtering, inactive store exclusion, zero-rating states, personal rating attachment, search by name, dynamic sorting, single store lookup, 404/400 validation.
-- **Ratings:** 1–5 integer validation, fractional/zero/string/overflow rejection, initial rating creation, concurrency-safe upsert without duplicate documents, owner rating denial.
-- **Owner Analytics:** Dashboard aggregation restricted to owned stores, normal user 403 denial, customer rating logs with customer name/email, storeId isolation.
+### Test Coverage (52 Tests Across 9 Suites):
+1. **`auth.test.ts` (11 tests):** Registration, password complexity, duplicate rejection, role tampering immunity, login, wrong password rejection, inactive account rejection, session retrieval (`/auth/me`), and logout.
+2. **`store.test.ts` (8 tests):** Active store filtering, inactive store exclusion, zero-rating states, personal rating attachment, search by name, dynamic sorting, single store lookup, 404/400 validation.
+3. **`rating.test.ts` (6 tests):** 1–5 integer validation, fractional/zero/string/overflow rejection, initial rating creation, concurrency-safe upsert without duplicate documents, owner rating denial (`403 Forbidden`).
+4. **`review.test.ts` (4 tests):** Rating submission with comments up to 500 characters, rejection of comments > 500 chars, self-voting prevention on helpful votes, review reporting and duplicate report rejection (`409 Conflict`).
+5. **`owner.test.ts` (4 tests):** Dashboard aggregation restricted to owned stores, normal user 403 denial, customer rating logs with customer name/email, storeId isolation.
+6. **`admin.test.ts` (7 tests):** Access restrictions (non-admins get 403), platform KPI calculations, user search and filtering, user status toggle and self-deactivation protection, store creation and audit log recording, review moderation (Hide Review and store aggregate adjustment).
+7. **`email.test.ts` (3 tests):** Anti-enumeration generic forgot-password response, password reset with token validation and session revocation (`tokenVersion`), email verification with token validation and rejection of invalid/expired tokens.
+8. **`discovery.test.ts` (8 tests):** Multi-filter discovery (category, city, min-rating), Bayesian adjusted rating calculation and sorting, store favorites toggle and retrieval, owner daily trend analytics, spreadsheet formula-injection-safe CSV export.
+9. **`e2e.workflow.test.ts` (1 integration test):** Full-stack end-to-end integration test spanning registration, store creation, rating with comment, helpful voting, review reporting, admin moderation, and aggregate recalculation.
 
 ---
 
-## 🌐 API Documentation
+## 🌐 API Endpoint Reference
 
 Base URL: `/api/v1`
 
-### Authentication
+### Authentication & Account Recovery
 - `POST /auth/register` — Register a new normal user account.
 - `POST /auth/login` — Sign in and receive HttpOnly session cookie.
 - `POST /auth/logout` — Invalidate session and clear auth cookie.
 - `GET /auth/me` — Retrieve active authenticated session.
+- `POST /auth/verify-email` — Verify account using token (`{ "token": "..." }`).
+- `POST /auth/resend-verification` — Resend verification email (rate-limited).
+- `POST /auth/forgot-password` — Request password reset email (anti-enumeration).
+- `POST /auth/reset-password` — Reset password using token (`{ "token": "...", "password": "..." }`).
 
-### Stores & Ratings
-- `GET /stores` — Query stores with `search`, `page`, `limit`, `sort`, `order`.
+### Stores, Ratings & Reviews
+- `GET /stores` — Query stores with `search`, `category`, `city`, `minRating`, `sort`, `order`, `page`, `limit`.
 - `GET /stores/:id` — Retrieve store details and rating statistics.
-- `GET /stores/:id/my-rating` — Retrieve user's personal rating for the store.
-- `PUT /stores/:id/rating` — Submit or update rating (`{ "rating": 5 }`).
+- `GET /stores/:id/reviews` — Paginated reviews with comments, helpful votes, and author names.
+- `GET /stores/:id/my-rating` — Retrieve user's personal rating and comment.
+- `PUT /stores/:id/rating` — Submit or update rating (`{ "rating": 5, "comment": "..." }`).
+- `POST /stores/:id/favorite` — Toggle store favorite status.
+- `GET /stores/favorites/my-favorites` — Retrieve authenticated user's favorite stores.
+- `POST /ratings/:ratingId/helpful` — Toggle helpful vote on a review.
+- `POST /ratings/:ratingId/report` — Report a review (`{ "reason": "SPAM", "details": "..." }`).
 
 ### Store Owner Portal
-- `GET /owner/dashboard` — Analytics KPIs, overall average, and 1–5 star distribution.
-- `GET /owner/ratings` — Paginated customer rating logs for owned stores.
+- `GET /owner/dashboard` — Summary KPIs and 1–5 star distribution.
+- `GET /owner/analytics` — Advanced analytics with daily trends and date range filtering (`7d`, `30d`, `90d`, `all`).
+- `GET /owner/ratings` — Paginated customer rating logs with customer name and email.
+- `GET /owner/export` — Download spreadsheet formula-injection-safe CSV export.
+
+### Platform Administration (Admin Only)
+- `GET /admin/kpis` — Platform-wide statistics (users, owners, stores, ratings, average).
+- `GET /admin/users` — Paginated user directory with search, role, and status filters.
+- `PATCH /admin/users/:userId/status` — Toggle user active/deactivated status.
+- `GET /admin/stores` — View all stores with rating metrics and owner details.
+- `POST /admin/stores` — Create a new store.
+- `PATCH /admin/stores/:storeId` — Update store details or toggle active status.
+- `PATCH /admin/stores/:storeId/assign` — Assign store ownership to a verified store owner.
+- `GET /admin/reports` — Review reported reviews moderation queue.
+- `PATCH /admin/reports/:reportId/moderate` — Moderate review (`HIDE_REVIEW`, `RESTORE_REVIEW`, `DISMISS`).
+- `GET /admin/audit-logs` — Administrative audit logs with pagination and filters.
 
 ### Health & Monitoring
 - `GET /health/live` — Liveness probe.
 - `GET /health/ready` — Readiness probe (validates active MongoDB connection).
-- `GET /docs` — Interactive Swagger UI.
+- `GET /docs` — Interactive OpenAPI / Swagger UI.
+
+---
+
+## 🔒 Security Architecture
+
+1. **HttpOnly Cookie Authentication:** JWT tokens are stored in `HttpOnly`, `SameSite=Lax`, and `Secure` cookies, eliminating script access to authentication tokens.
+2. **Session Invalidation via `tokenVersion`:** Passwords and account revocations increment `tokenVersion`, instantly invalidating existing tokens across all devices.
+3. **Privilege Tampering Immunity:**
+   - Public registration strictly enforces `role: USER`. Any client-supplied `role`, `isEmailVerified`, or privileged fields are ignored.
+   - Profile updates cannot modify roles or ownership assignments.
+   - Store owners cannot rate stores (`403 Forbidden`).
+   - Normal users cannot access store owner or admin endpoints (`403 Forbidden`).
+   - Admins cannot deactivate their own account, preventing lockout.
+4. **Spreadsheet Formula Injection Defense:** CSV exports prefix cells starting with `=`, `+`, `-`, `@`, or `\t` with `'` to neutralize formula injection in Excel/Sheets.
+5. **Anti-Enumeration Responses:** Password recovery requests return identical `200 OK` responses regardless of whether the submitted email address exists.
+6. **NoSQL Injection Defense:** All queries sanitize inputs with typed Mongoose models and Zod schema validations.
+7. **CSRF & Origin Protection:** State-changing requests enforce trusted origin checks and custom `X-Requested-With` headers.
+8. **Rate Limiting:** Dedicated rate limiters protect `/auth/login`, `/auth/register`, `/auth/forgot-password`, and `/ratings/:id/report`.
+9. **Production Error Masking:** Centralized error handling catches duplicate keys (`E11000`), Zod validation issues, and never exposes stack traces in production.
 
 ---
 
@@ -273,6 +385,7 @@ Base URL: `/api/v1`
    - `COOKIE_NAME`: `auth_token`
    - `COOKIE_SAME_SITE`: `none` (for cross-domain cookies between Render & Vercel)
    - `COOKIE_SECURE`: `true`
+   - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM`: SMTP credentials for verification & recovery.
 6. Set Health Check Path to `/api/v1/health/live`.
 
 ### Database on MongoDB Atlas
