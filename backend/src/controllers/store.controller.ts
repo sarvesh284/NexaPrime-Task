@@ -14,6 +14,15 @@ export class StoreController {
     }
   }
 
+  static async getFilterOptions(_req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await StoreService.getFilterOptions();
+      sendSuccess(res, result, 'Filter options retrieved', 200);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async getStoreById(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const store = await StoreService.getStoreById(req.params.id, req.user?.userId);
@@ -27,6 +36,24 @@ export class StoreController {
     try {
       const result = await RatingService.getUserRatingForStore(req.user!.userId, req.params.id);
       sendSuccess(res, result, 'Personal rating retrieved', 200);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async toggleFavorite(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await StoreService.toggleFavorite(req.user!.userId, req.params.id);
+      sendSuccess(res, result, result.message, 200);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getUserFavorites(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await StoreService.getUserFavorites(req.user!.userId);
+      sendSuccess(res, result, 'User favorites retrieved', 200);
     } catch (error) {
       next(error);
     }

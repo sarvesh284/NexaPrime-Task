@@ -5,8 +5,8 @@ const swaggerSpec = {
   openapi: '3.0.0',
   info: {
     title: 'Store Rating Platform API',
-    version: '1.0.0',
-    description: 'Production-ready REST API for the Store Rating Web Application with role-based access, rating discovery, and owner analytics.',
+    version: '2.0.0',
+    description: 'Production-ready REST API for the Store Rating Web Application with role-based access control (USER, STORE_OWNER, ADMIN), review comments & moderation, email verification, password reset, advanced owner analytics, and Bayesian rating discovery.',
   },
   servers: [
     {
@@ -32,10 +32,11 @@ const swaggerSpec = {
         type: 'object',
         properties: {
           id: { type: 'string' },
-          name: { type: 'string', minLength: 20, maxLength: 60 },
+          name: { type: 'string' },
           email: { type: 'string', format: 'email' },
-          address: { type: 'string', maxLength: 400 },
-          role: { type: 'string', enum: ['USER', 'STORE_OWNER'] },
+          address: { type: 'string' },
+          role: { type: 'string', enum: ['USER', 'STORE_OWNER', 'ADMIN'] },
+          isEmailVerified: { type: 'boolean' },
           createdAt: { type: 'string', format: 'date-time' },
         },
       },
@@ -44,10 +45,15 @@ const swaggerSpec = {
         properties: {
           id: { type: 'string' },
           name: { type: 'string' },
+          email: { type: 'string' },
           address: { type: 'string' },
-          averageRating: { type: 'number', example: 4.5 },
-          ratingCount: { type: 'integer', example: 12 },
-          myRating: { type: 'integer', nullable: true, example: 5 },
+          category: { type: 'string' },
+          city: { type: 'string' },
+          averageRating: { type: 'number' },
+          bayesianRating: { type: 'number' },
+          ratingCount: { type: 'integer' },
+          isFavorite: { type: 'boolean' },
+          myRating: { type: 'integer', nullable: true },
         },
       },
       RatingInput: {
@@ -55,6 +61,15 @@ const swaggerSpec = {
         required: ['rating'],
         properties: {
           rating: { type: 'integer', minimum: 1, maximum: 5, example: 5 },
+          comment: { type: 'string', maxLength: 500, example: 'Outstanding quality and service!' },
+        },
+      },
+      ReportInput: {
+        type: 'object',
+        required: ['reason'],
+        properties: {
+          reason: { type: 'string', enum: ['INAPPROPRIATE', 'SPAM', 'OFFENSIVE', 'SUSPICIOUS', 'OTHER'] },
+          details: { type: 'string', maxLength: 500 },
         },
       },
     },
@@ -62,183 +77,160 @@ const swaggerSpec = {
   paths: {
     '/auth/register': {
       post: {
-        summary: 'Register a new user (always creates normal USER role)',
+        summary: 'Register a new user account',
         tags: ['Authentication'],
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                required: ['name', 'email', 'password', 'address'],
-                properties: {
-                  name: { type: 'string', minLength: 20, maxLength: 60, example: 'Christopher Columbus Explorer' },
-                  email: { type: 'string', format: 'email', example: 'columbus@example.com' },
-                  password: { type: 'string', minLength: 8, maxLength: 16, example: 'Pass@1234' },
-                  address: { type: 'string', maxLength: 400, example: '123 Discovery Boulevard, Suite 400' },
-                },
-              },
-            },
-          },
-        },
-        responses: {
-          201: { description: 'User registered successfully and cookie set' },
-          400: { description: 'Validation error' },
-          409: { description: 'Email already exists' },
-        },
       },
     },
     '/auth/login': {
       post: {
-        summary: 'Log in with email and password',
+        summary: 'Log in with credentials',
         tags: ['Authentication'],
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                required: ['email', 'password'],
-                properties: {
-                  email: { type: 'string', example: 'sarvesh.user@example.com' },
-                  password: { type: 'string', example: 'Password@123' },
-                },
-              },
-            },
-          },
-        },
-        responses: {
-          200: { description: 'Login successful, sets HttpOnly auth cookie' },
-          401: { description: 'Invalid email or password' },
-        },
       },
     },
-    '/auth/logout': {
+    '/auth/forgot-password': {
       post: {
-        summary: 'Log out user and clear auth cookie',
+        summary: 'Send password reset email link',
         tags: ['Authentication'],
-        responses: {
-          200: { description: 'Logged out successfully' },
-        },
       },
     },
-    '/auth/me': {
-      get: {
-        summary: 'Get current authenticated user session',
+    '/auth/reset-password': {
+      post: {
+        summary: 'Reset password with token',
         tags: ['Authentication'],
-        security: [{ cookieAuth: [] }, { bearerAuth: [] }],
-        responses: {
-          200: { description: 'Current user session data' },
-          401: { description: 'Unauthorized / expired session' },
-        },
+      },
+    },
+    '/auth/verify-email': {
+      post: {
+        summary: 'Verify email address with token',
+        tags: ['Authentication'],
       },
     },
     '/stores': {
       get: {
-        summary: 'Get paginated list of active stores with search and sorting',
+        summary: 'Get stores with category, city, minRating, and Bayesian sort',
         tags: ['Stores'],
-        parameters: [
-          { name: 'search', in: 'query', schema: { type: 'string' } },
-          { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
-          { name: 'limit', in: 'query', schema: { type: 'integer', default: 10 } },
-          { name: 'sort', in: 'query', schema: { type: 'string', enum: ['name', 'averageRating', 'ratingCount', 'createdAt'], default: 'name' } },
-          { name: 'order', in: 'query', schema: { type: 'string', enum: ['asc', 'desc'], default: 'asc' } },
-        ],
-        responses: {
-          200: { description: 'Stores retrieved successfully' },
-        },
       },
     },
-    '/stores/{id}': {
+    '/stores/filter-options': {
       get: {
-        summary: 'Get store details by ID',
+        summary: 'Get unique categories and cities',
         tags: ['Stores'],
-        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-        responses: {
-          200: { description: 'Store details' },
-          404: { description: 'Store not found' },
-        },
       },
     },
-    '/stores/{id}/my-rating': {
+    '/stores/favorites': {
       get: {
-        summary: 'Get authenticated user rating for store',
+        summary: 'Get user favorites list',
         tags: ['Stores'],
-        security: [{ cookieAuth: [] }, { bearerAuth: [] }],
-        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-        responses: {
-          200: { description: 'User rating data' },
-        },
+        security: [{ cookieAuth: [] }],
+      },
+    },
+    '/stores/{id}/reviews': {
+      get: {
+        summary: 'Get store reviews with star distribution breakdown',
+        tags: ['Reviews'],
       },
     },
     '/stores/{id}/rating': {
       put: {
-        summary: 'Submit or update rating for a store (1-5 integer)',
-        tags: ['Ratings'],
-        security: [{ cookieAuth: [] }, { bearerAuth: [] }],
-        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: { $ref: '#/components/schemas/RatingInput' },
-            },
-          },
-        },
-        responses: {
-          200: { description: 'Rating updated successfully' },
-          400: { description: 'Invalid rating value' },
-          401: { description: 'Unauthorized' },
-        },
+        summary: 'Submit or update rating with written comment',
+        tags: ['Reviews'],
+        security: [{ cookieAuth: [] }],
+      },
+    },
+    '/stores/reviews/{reviewId}/helpful': {
+      post: {
+        summary: 'Toggle helpful vote on a review',
+        tags: ['Reviews'],
+        security: [{ cookieAuth: [] }],
+      },
+    },
+    '/stores/reviews/{reviewId}/report': {
+      post: {
+        summary: 'Report an inappropriate review',
+        tags: ['Reviews'],
+        security: [{ cookieAuth: [] }],
       },
     },
     '/owner/dashboard': {
       get: {
-        summary: 'Get store owner analytics dashboard',
+        summary: 'Store owner dashboard overview',
         tags: ['Store Owner'],
-        security: [{ cookieAuth: [] }, { bearerAuth: [] }],
-        responses: {
-          200: { description: 'Owner dashboard analytics data' },
-          403: { description: 'Forbidden: Requires STORE_OWNER role' },
-        },
+        security: [{ cookieAuth: [] }],
       },
     },
-    '/owner/ratings': {
+    '/owner/analytics': {
       get: {
-        summary: 'Get paginated customer ratings for owner stores',
+        summary: 'Advanced owner analytics with date ranges and trends',
         tags: ['Store Owner'],
-        security: [{ cookieAuth: [] }, { bearerAuth: [] }],
-        parameters: [
-          { name: 'storeId', in: 'query', schema: { type: 'string' } },
-          { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
-          { name: 'limit', in: 'query', schema: { type: 'integer', default: 10 } },
-          { name: 'search', in: 'query', schema: { type: 'string' } },
-          { name: 'sort', in: 'query', schema: { type: 'string', enum: ['createdAt', 'updatedAt', 'value', 'storeName'] } },
-          { name: 'order', in: 'query', schema: { type: 'string', enum: ['asc', 'desc'] } },
-        ],
-        responses: {
-          200: { description: 'List of customer ratings' },
-          403: { description: 'Forbidden: Store does not belong to owner' },
-        },
+        security: [{ cookieAuth: [] }],
       },
     },
-    '/health/live': {
+    '/owner/ratings/export': {
       get: {
-        summary: 'Liveness check',
-        tags: ['Health'],
-        responses: {
-          200: { description: 'Service is live' },
-        },
+        summary: 'Export owner ratings to CSV with formula injection defense',
+        tags: ['Store Owner'],
+        security: [{ cookieAuth: [] }],
       },
     },
-    '/health/ready': {
+    '/admin/kpis': {
       get: {
-        summary: 'Readiness check with database connection status',
-        tags: ['Health'],
-        responses: {
-          200: { description: 'Service is ready and database is connected' },
-          503: { description: 'Database disconnected' },
-        },
+        summary: 'Platform-wide KPIs for Admin Dashboard',
+        tags: ['Admin'],
+        security: [{ cookieAuth: [] }],
+      },
+    },
+    '/admin/users': {
+      get: {
+        summary: 'Paginated user management list',
+        tags: ['Admin'],
+        security: [{ cookieAuth: [] }],
+      },
+    },
+    '/admin/users/{id}/status': {
+      patch: {
+        summary: 'Deactivate or reactivate user account',
+        tags: ['Admin'],
+        security: [{ cookieAuth: [] }],
+      },
+    },
+    '/admin/stores': {
+      get: {
+        summary: 'Paginated stores list for admin',
+        tags: ['Admin'],
+        security: [{ cookieAuth: [] }],
+      },
+      post: {
+        summary: 'Create store and assign owner',
+        tags: ['Admin'],
+        security: [{ cookieAuth: [] }],
+      },
+    },
+    '/admin/stores/{id}/assign-owner': {
+      post: {
+        summary: 'Assign or reassign store owner',
+        tags: ['Admin'],
+        security: [{ cookieAuth: [] }],
+      },
+    },
+    '/admin/reports': {
+      get: {
+        summary: 'List reported reviews for moderation',
+        tags: ['Admin'],
+        security: [{ cookieAuth: [] }],
+      },
+    },
+    '/admin/reports/{id}/moderate': {
+      post: {
+        summary: 'Moderate report (HIDE_REVIEW, DISMISS, RESTORE_REVIEW)',
+        tags: ['Admin'],
+        security: [{ cookieAuth: [] }],
+      },
+    },
+    '/admin/audit-logs': {
+      get: {
+        summary: 'View platform administrative audit logs',
+        tags: ['Admin'],
+        security: [{ cookieAuth: [] }],
       },
     },
   },

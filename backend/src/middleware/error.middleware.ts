@@ -63,7 +63,7 @@ export const errorHandler = (
       ? 'An unexpected internal server error occurred'
       : err.message || 'Internal Server Error';
 
-  sendError(res, message, err.statusCode || 500, 'INTERNAL_SERVER_ERROR');
+  sendError(res, message, err.statusCode || 500, err.code || 'INTERNAL_SERVER_ERROR');
 };
 
 export const notFoundHandler = (req: Request, res: Response): void => {

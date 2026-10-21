@@ -1,9 +1,22 @@
 import mongoose from 'mongoose';
 import { StoreModel } from '../models/store.model';
 import { RatingModel } from '../models/rating.model';
-import { OwnerRatingsQueryInput } from '../validators/store.validator';
+import { OwnerRatingsQueryInput, OwnerAnalyticsQueryInput } from '../validators/store.validator';
+
+function sanitizeCsvCell(value: any): string {
+  if (value === null || value === undefined) return '""';
+  let str = String(value).replace(/[\r\n]+/g, ' ');
+  // Prevent formula injection in Excel / Google Sheets
+  if (/^[=\+\-@\t]/.test(str)) {
+    str = `'${str}`;
+  }
+  return `"${str.replace(/"/g, '""')}"`;
+}
 
 export class OwnerService {
+  /**
+   * Get basic dashboard overview for store owner
+   */
   static async getDashboard(ownerId: string) {
     const ownerObjectId = new mongoose.Types.ObjectId(ownerId);
 
@@ -21,9 +34,9 @@ export class OwnerService {
       };
     }
 
-    // Aggregated stats across all owned stores
+    // Aggregated stats across all owned stores (only VISIBLE reviews)
     const [overallStats] = await RatingModel.aggregate([
-      { $match: { storeId: { $in: storeIds } } },
+      { $match: { storeId: { $in: storeIds }, status: 'VISIBLE' } },
       {
         $group: {
           _id: null,
@@ -35,7 +48,7 @@ export class OwnerService {
 
     // Star rating distribution (1 to 5)
     const distributionAgg = await RatingModel.aggregate([
-      { $match: { storeId: { $in: storeIds } } },
+      { $match: { storeId: { $in: storeIds }, status: 'VISIBLE' } },
       {
         $group: {
           _id: '$value',
@@ -53,7 +66,7 @@ export class OwnerService {
 
     // Per-store breakdown
     const perStoreAgg = await RatingModel.aggregate([
-      { $match: { storeId: { $in: storeIds } } },
+      { $match: { storeId: { $in: storeIds }, status: 'VISIBLE' } },
       {
         $group: {
           _id: '$storeId',
@@ -97,8 +110,167 @@ export class OwnerService {
     };
   }
 
+  /**
+   * Get advanced analytics with date ranges, trends, and store comparisons
+   */
+  static async getAnalytics(ownerId: string, query: OwnerAnalyticsQueryInput) {
+    const { storeId, startDate, endDate, rating } = query;
+    const ownerObjectId = new mongoose.Types.ObjectId(ownerId);
+
+    // Verify authorized stores
+    let targetStoreIds: mongoose.Types.ObjectId[] = [];
+    if (storeId) {
+      if (!mongoose.isValidObjectId(storeId)) {
+        const error: any = new Error('Invalid store ID format');
+        error.statusCode = 400;
+        error.code = 'INVALID_ID';
+        throw error;
+      }
+      const store = await StoreModel.findOne({
+        _id: new mongoose.Types.ObjectId(storeId),
+        ownerId: ownerObjectId,
+        isActive: true,
+      });
+      if (!store) {
+        const error: any = new Error('Store not found or unauthorized');
+        error.statusCode = 403;
+        error.code = 'FORBIDDEN';
+        throw error;
+      }
+      targetStoreIds = [store._id];
+    } else {
+      const stores = await StoreModel.find({ ownerId: ownerObjectId, isActive: true });
+      targetStoreIds = stores.map((s) => s._id);
+    }
+
+    if (targetStoreIds.length === 0) {
+      return {
+        totalStores: 0,
+        totalRatings: 0,
+        averageRating: 0,
+        periodNewRatings: 0,
+        distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+        dailyTrends: [],
+        storeComparisons: [],
+      };
+    }
+
+    // Match conditions
+    const matchFilter: any = {
+      storeId: { $in: targetStoreIds },
+      status: 'VISIBLE',
+    };
+
+    if (rating && rating >= 1 && rating <= 5) {
+      matchFilter.value = rating;
+    }
+
+    const dateFilter: any = {};
+    if (startDate) {
+      dateFilter.$gte = new Date(startDate);
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      dateFilter.$lte = end;
+    }
+    if (Object.keys(dateFilter).length > 0) {
+      matchFilter.createdAt = dateFilter;
+    }
+
+    // Parallel aggregations for performance
+    const [overallStats, distributionAgg, trendsAgg, storeComparisonsAgg] = await Promise.all([
+      RatingModel.aggregate([
+        { $match: matchFilter },
+        {
+          $group: {
+            _id: null,
+            totalRatings: { $sum: 1 },
+            averageRating: { $avg: '$value' },
+          },
+        },
+      ]),
+      RatingModel.aggregate([
+        { $match: matchFilter },
+        {
+          $group: {
+            _id: '$value',
+            count: { $sum: 1 },
+          },
+        },
+      ]),
+      // Daily trend aggregation
+      RatingModel.aggregate([
+        { $match: matchFilter },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+            count: { $sum: 1 },
+            averageRating: { $avg: '$value' },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]),
+      // Store comparison aggregation
+      RatingModel.aggregate([
+        { $match: matchFilter },
+        {
+          $lookup: {
+            from: 'stores',
+            localField: 'storeId',
+            foreignField: '_id',
+            as: 'store',
+          },
+        },
+        { $unwind: '$store' },
+        {
+          $group: {
+            _id: '$storeId',
+            storeName: { $first: '$store.name' },
+            count: { $sum: 1 },
+            averageRating: { $avg: '$value' },
+          },
+        },
+        { $sort: { count: -1 } },
+      ]),
+    ]);
+
+    const distribution: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    for (const d of distributionAgg) {
+      if (d._id >= 1 && d._id <= 5) {
+        distribution[d._id] = d.count;
+      }
+    }
+
+    const dailyTrends = trendsAgg.map((t) => ({
+      date: t._id,
+      count: t.count,
+      averageRating: Math.round(t.averageRating * 10) / 10,
+    }));
+
+    const storeComparisons = storeComparisonsAgg.map((s) => ({
+      storeId: s._id.toString(),
+      storeName: s.storeName,
+      ratingCount: s.count,
+      averageRating: Math.round(s.averageRating * 10) / 10,
+    }));
+
+    return {
+      totalStores: targetStoreIds.length,
+      totalRatings: overallStats[0]?.totalRatings || 0,
+      averageRating: overallStats[0] ? Math.round(overallStats[0].averageRating * 10) / 10 : 0,
+      periodNewRatings: overallStats[0]?.totalRatings || 0,
+      distribution,
+      dailyTrends,
+      storeComparisons,
+    };
+  }
+
+  /**
+   * Get ratings list for store owner
+   */
   static async getOwnerRatings(ownerId: string, query: OwnerRatingsQueryInput) {
-    const { storeId, page, limit, search, sort, order } = query;
+    const { storeId, page, limit, search, rating, startDate, endDate, sort, order } = query;
     const ownerObjectId = new mongoose.Types.ObjectId(ownerId);
 
     // Verify stores owned by this owner
@@ -155,7 +327,23 @@ export class OwnerService {
 
     const matchStage: any = {
       storeId: { $in: targetStoreIds },
+      status: 'VISIBLE',
     };
+
+    if (rating && rating >= 1 && rating <= 5) {
+      matchStage.value = rating;
+    }
+
+    const dateFilter: any = {};
+    if (startDate) dateFilter.$gte = new Date(startDate);
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      dateFilter.$lte = end;
+    }
+    if (Object.keys(dateFilter).length > 0) {
+      matchStage.createdAt = dateFilter;
+    }
 
     const pipeline: any[] = [
       { $match: matchStage },
@@ -186,6 +374,7 @@ export class OwnerService {
             { 'user.name': { $regex: search, $options: 'i' } },
             { 'user.email': { $regex: search, $options: 'i' } },
             { 'store.name': { $regex: search, $options: 'i' } },
+            { comment: { $regex: search, $options: 'i' } },
           ],
         },
       });
@@ -203,6 +392,9 @@ export class OwnerService {
               $project: {
                 id: '$_id',
                 value: 1,
+                comment: 1,
+                status: 1,
+                helpfulCount: 1,
                 createdAt: 1,
                 updatedAt: 1,
                 user: {
@@ -226,6 +418,8 @@ export class OwnerService {
     const ratings = (result?.data || []).map((r: any) => ({
       id: r._id?.toString() || r.id?.toString(),
       rating: r.value,
+      comment: r.comment || '',
+      helpfulCount: r.helpfulCount || 0,
       createdAt: r.createdAt,
       updatedAt: r.updatedAt,
       user: {
@@ -248,5 +442,114 @@ export class OwnerService {
         totalPages: Math.ceil(total / limit) || 1,
       },
     };
+  }
+
+  /**
+   * Export owner ratings to CSV with formula injection defense
+   */
+  static async exportRatingsCsv(ownerId: string, query: OwnerRatingsQueryInput): Promise<string> {
+    const { storeId, search, rating, startDate, endDate } = query;
+    const ownerObjectId = new mongoose.Types.ObjectId(ownerId);
+
+    let targetStoreIds: mongoose.Types.ObjectId[] = [];
+    if (storeId) {
+      if (!mongoose.isValidObjectId(storeId)) {
+        throw new Error('Invalid store ID');
+      }
+      const store = await StoreModel.findOne({
+        _id: new mongoose.Types.ObjectId(storeId),
+        ownerId: ownerObjectId,
+        isActive: true,
+      });
+      if (!store) throw new Error('Store not found or unauthorized');
+      targetStoreIds = [store._id];
+    } else {
+      const stores = await StoreModel.find({ ownerId: ownerObjectId, isActive: true });
+      targetStoreIds = stores.map((s) => s._id);
+    }
+
+    if (targetStoreIds.length === 0) {
+      return 'Store Name,Customer Name,Customer Email,Rating,Comment,Helpful Votes,Date\n';
+    }
+
+    const matchStage: any = {
+      storeId: { $in: targetStoreIds },
+      status: 'VISIBLE',
+    };
+
+    if (rating && rating >= 1 && rating <= 5) {
+      matchStage.value = rating;
+    }
+
+    const dateFilter: any = {};
+    if (startDate) dateFilter.$gte = new Date(startDate);
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      dateFilter.$lte = end;
+    }
+    if (Object.keys(dateFilter).length > 0) {
+      matchStage.createdAt = dateFilter;
+    }
+
+    const pipeline: any[] = [
+      { $match: matchStage },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'userId',
+          foreignField: '_id',
+          as: 'user',
+        },
+      },
+      { $unwind: '$user' },
+      {
+        $lookup: {
+          from: 'stores',
+          localField: 'storeId',
+          foreignField: '_id',
+          as: 'store',
+        },
+      },
+      { $unwind: '$store' },
+    ];
+
+    if (search) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { 'user.name': { $regex: search, $options: 'i' } },
+            { 'user.email': { $regex: search, $options: 'i' } },
+            { 'store.name': { $regex: search, $options: 'i' } },
+            { comment: { $regex: search, $options: 'i' } },
+          ],
+        },
+      });
+    }
+
+    pipeline.push(
+      { $sort: { createdAt: -1 } },
+      { $limit: 10000 } // Safe upper limit for export
+    );
+
+    const rows = await RatingModel.aggregate(pipeline);
+
+    const headers = ['Store Name', 'Customer Name', 'Customer Email', 'Rating', 'Comment', 'Helpful Votes', 'Date'];
+    const csvLines = [headers.join(',')];
+
+    for (const row of rows) {
+      const line = [
+        sanitizeCsvCell(row.store.name),
+        sanitizeCsvCell(row.user.name),
+        sanitizeCsvCell(row.user.email),
+        sanitizeCsvCell(row.value),
+        sanitizeCsvCell(row.comment || ''),
+        sanitizeCsvCell(row.helpfulCount || 0),
+        sanitizeCsvCell(new Date(row.createdAt).toISOString()),
+      ];
+      csvLines.push(line.join(','));
+    }
+
+    return csvLines.join('\n');
   }
 }

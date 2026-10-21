@@ -25,10 +25,15 @@ export const requireAuth = async (
 
     const payload = verifyToken(token);
 
-    // Verify user exists and is active
-    const user = await UserModel.findById(payload.userId).select('isActive role email');
+    // Verify user exists, is active, and token version matches
+    const user = await UserModel.findById(payload.userId).select('isActive role email tokenVersion');
     if (!user || !user.isActive) {
       sendError(res, 'Account is inactive or no longer exists', 401, 'ACCOUNT_INACTIVE');
+      return;
+    }
+
+    if (payload.tokenVersion !== undefined && (user.tokenVersion ?? 0) !== payload.tokenVersion) {
+      sendError(res, 'Session has expired or been revoked. Please log in again.', 401, 'TOKEN_REVOKED');
       return;
     }
 
@@ -36,6 +41,7 @@ export const requireAuth = async (
       userId: user._id.toString(),
       email: user.email,
       role: user.role,
+      tokenVersion: user.tokenVersion,
     };
 
     next();
@@ -57,12 +63,13 @@ export const optionalAuth = async (
 
     if (token) {
       const payload = verifyToken(token);
-      const user = await UserModel.findById(payload.userId).select('isActive role email');
-      if (user && user.isActive) {
+      const user = await UserModel.findById(payload.userId).select('isActive role email tokenVersion');
+      if (user && user.isActive && (payload.tokenVersion === undefined || user.tokenVersion === payload.tokenVersion)) {
         req.user = {
           userId: user._id.toString(),
           email: user.email,
           role: user.role,
+          tokenVersion: user.tokenVersion,
         };
       }
     }

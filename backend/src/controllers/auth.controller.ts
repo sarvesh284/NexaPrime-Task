@@ -42,4 +42,42 @@ export class AuthController {
       next(error);
     }
   }
+
+  static async forgotPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await AuthService.forgotPassword(req.body.email);
+      sendSuccess(res, result, result.message, 200);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async resetPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await AuthService.resetPassword(req.body.token, req.body.password);
+      // Clear cookie to ensure fresh login
+      clearAuthCookie(res);
+      sendSuccess(res, result, result.message, 200);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async verifyEmail(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await AuthService.verifyEmail(req.body.token);
+      sendSuccess(res, result, result.message, 200);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async resendVerification(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await AuthService.resendVerification(req.body.email);
+      sendSuccess(res, result, result.message, 200);
+    } catch (error) {
+      next(error);
+    }
+  }
 }

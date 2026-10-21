@@ -1,11 +1,12 @@
 import { Request } from 'express';
 
-export type UserRole = 'USER' | 'STORE_OWNER';
+export type UserRole = 'USER' | 'STORE_OWNER' | 'ADMIN';
 
 export interface IUserPayload {
   userId: string;
   email: string;
   role: UserRole;
+  tokenVersion?: number;
 }
 
 export interface AuthenticatedRequest extends Request {

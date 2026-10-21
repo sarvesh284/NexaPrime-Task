@@ -3,6 +3,7 @@ import { RegisterInput, LoginInput } from '../validators/auth.validator';
 import { hashPassword, comparePassword } from '../utils/password';
 import { signToken } from '../utils/jwt';
 import { IUserPayload } from '../types';
+import { emailService } from './email.service';
 
 export class AuthService {
   static async register(input: RegisterInput) {
@@ -16,6 +17,10 @@ export class AuthService {
 
     const passwordHash = await hashPassword(input.password);
 
+    // Generate email verification token (24-hour expiry)
+    const { token: verificationToken, hash: verificationTokenHash } = emailService.generateToken();
+    const verificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
     // Public registration MUST ALWAYS assign role 'USER'
     const newUser = await UserModel.create({
       name: input.name,
@@ -24,12 +29,22 @@ export class AuthService {
       passwordHash,
       role: 'USER',
       isActive: true,
+      isEmailVerified: false,
+      emailVerificationTokenHash: verificationTokenHash,
+      emailVerificationExpiresAt: verificationExpiresAt,
+      tokenVersion: 1,
+    });
+
+    // Send email verification asynchronously (doesn't block registration)
+    emailService.sendVerificationEmail(newUser.email, verificationToken).catch((err) => {
+      console.error('Failed to dispatch verification email:', err);
     });
 
     const payload: IUserPayload = {
       userId: newUser._id.toString(),
       email: newUser.email,
       role: newUser.role,
+      tokenVersion: newUser.tokenVersion,
     };
 
     const token = signToken(payload);
@@ -41,6 +56,7 @@ export class AuthService {
         email: newUser.email,
         address: newUser.address,
         role: newUser.role,
+        isEmailVerified: newUser.isEmailVerified,
         createdAt: newUser.createdAt,
       },
       token,
@@ -75,6 +91,7 @@ export class AuthService {
       userId: user._id.toString(),
       email: user.email,
       role: user.role,
+      tokenVersion: user.tokenVersion ?? 0,
     };
 
     const token = signToken(payload);
@@ -86,6 +103,7 @@ export class AuthService {
         email: user.email,
         address: user.address,
         role: user.role,
+        isEmailVerified: user.isEmailVerified,
         createdAt: user.createdAt,
       },
       token,
@@ -107,7 +125,113 @@ export class AuthService {
       email: user.email,
       address: user.address,
       role: user.role,
+      isEmailVerified: user.isEmailVerified,
+      favoritesCount: user.favorites ? user.favorites.length : 0,
       createdAt: user.createdAt,
+    };
+  }
+
+  /**
+   * Request password reset link (anti-enumeration response)
+   */
+  static async forgotPassword(email: string) {
+    const user = await UserModel.findOne({ email: email.toLowerCase().trim() });
+    if (!user || !user.isActive) {
+      // Always return success to prevent email enumeration
+      return {
+        message: 'If an account exists with that email, a password reset link has been sent.',
+      };
+    }
+
+    const { token, hash } = emailService.generateToken();
+    user.passwordResetTokenHash = hash;
+    user.passwordResetExpiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    await user.save();
+
+    await emailService.sendPasswordResetEmail(user.email, token);
+
+    return {
+      message: 'If an account exists with that email, a password reset link has been sent.',
+    };
+  }
+
+  /**
+   * Reset password with valid token
+   */
+  static async resetPassword(token: string, newPassword: string) {
+    const tokenHash = emailService.hashToken(token);
+    const user = await UserModel.findOne({
+      passwordResetTokenHash: tokenHash,
+      passwordResetExpiresAt: { $gt: new Date() },
+    });
+
+    if (!user) {
+      const error: any = new Error('Invalid or expired password reset token');
+      error.statusCode = 400;
+      error.code = 'INVALID_RESET_TOKEN';
+      throw error;
+    }
+
+    const passwordHash = await hashPassword(newPassword);
+    user.passwordHash = passwordHash;
+    user.passwordResetTokenHash = undefined;
+    user.passwordResetExpiresAt = undefined;
+    // Invalidate all existing sessions by incrementing tokenVersion
+    user.tokenVersion = (user.tokenVersion || 1) + 1;
+    await user.save();
+
+    return {
+      message: 'Password has been reset successfully. Please sign in with your new password.',
+    };
+  }
+
+  /**
+   * Verify email address with token
+   */
+  static async verifyEmail(token: string) {
+    const tokenHash = emailService.hashToken(token);
+    const user = await UserModel.findOne({
+      emailVerificationTokenHash: tokenHash,
+      emailVerificationExpiresAt: { $gt: new Date() },
+    });
+
+    if (!user) {
+      const error: any = new Error('Invalid or expired email verification token');
+      error.statusCode = 400;
+      error.code = 'INVALID_VERIFICATION_TOKEN';
+      throw error;
+    }
+
+    user.isEmailVerified = true;
+    user.emailVerificationTokenHash = undefined;
+    user.emailVerificationExpiresAt = undefined;
+    await user.save();
+
+    return {
+      message: 'Email address verified successfully.',
+    };
+  }
+
+  /**
+   * Resend email verification link
+   */
+  static async resendVerification(email: string) {
+    const user = await UserModel.findOne({ email: email.toLowerCase().trim() });
+    if (!user || user.isEmailVerified || !user.isActive) {
+      return {
+        message: 'If your account requires verification, a new verification link has been sent.',
+      };
+    }
+
+    const { token, hash } = emailService.generateToken();
+    user.emailVerificationTokenHash = hash;
+    user.emailVerificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await user.save();
+
+    await emailService.sendVerificationEmail(user.email, token);
+
+    return {
+      message: 'If your account requires verification, a new verification link has been sent.',
     };
   }
 }

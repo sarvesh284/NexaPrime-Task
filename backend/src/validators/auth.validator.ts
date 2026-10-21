@@ -40,5 +40,41 @@ export const loginSchema = z.object({
     .min(1, 'Password is required'),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z
+    .string({ required_error: 'Email is required' })
+    .trim()
+    .toLowerCase()
+    .email('Invalid email address format'),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string({ required_error: 'Reset token is required' }).trim().min(1, 'Token is required'),
+  password: z
+    .string({ required_error: 'Password is required' })
+    .min(8, 'Password must be between 8 and 16 characters')
+    .max(16, 'Password must be between 8 and 16 characters')
+    .regex(
+      passwordRegex,
+      'Password must contain at least one uppercase letter and at least one special character'
+    ),
+});
+
+export const verifyEmailSchema = z.object({
+  token: z.string({ required_error: 'Verification token is required' }).trim().min(1, 'Token is required'),
+});
+
+export const resendVerificationSchema = z.object({
+  email: z
+    .string({ required_error: 'Email is required' })
+    .trim()
+    .toLowerCase()
+    .email('Invalid email address format'),
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
+export type ResendVerificationInput = z.infer<typeof resendVerificationSchema>;

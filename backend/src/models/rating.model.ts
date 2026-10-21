@@ -1,9 +1,18 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
+export type RatingStatus = 'VISIBLE' | 'HIDDEN' | 'FLAGGED';
+
 export interface IRating extends Document {
   userId: mongoose.Types.ObjectId;
   storeId: mongoose.Types.ObjectId;
   value: number;
+  comment?: string;
+  status: RatingStatus;
+  moderatedAt?: Date;
+  moderatedBy?: mongoose.Types.ObjectId;
+  moderationReason?: string;
+  helpfulVotes: mongoose.Types.ObjectId[];
+  helpfulCount: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -32,6 +41,39 @@ const ratingSchema = new Schema<IRating>(
         message: '{VALUE} is not an integer rating',
       },
     },
+    comment: {
+      type: String,
+      maxlength: 500,
+      trim: true,
+      default: '',
+    },
+    status: {
+      type: String,
+      enum: ['VISIBLE', 'HIDDEN', 'FLAGGED'],
+      default: 'VISIBLE',
+      index: true,
+    },
+    moderatedAt: {
+      type: Date,
+    },
+    moderatedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    moderationReason: {
+      type: String,
+    },
+    helpfulVotes: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
+    helpfulCount: {
+      type: Number,
+      default: 0,
+      index: true,
+    },
   },
   {
     timestamps: true,
@@ -49,7 +91,8 @@ const ratingSchema = new Schema<IRating>(
 // Unique compound index: One rating per user per store
 ratingSchema.index({ userId: 1, storeId: 1 }, { unique: true });
 
-// Compound index for aggregations
-ratingSchema.index({ storeId: 1, createdAt: -1 });
+// Compound indexes for aggregations and public review display
+ratingSchema.index({ storeId: 1, status: 1, createdAt: -1 });
+ratingSchema.index({ storeId: 1, status: 1, helpfulCount: -1 });
 
 export const RatingModel = mongoose.model<IRating>('Rating', ratingSchema);
