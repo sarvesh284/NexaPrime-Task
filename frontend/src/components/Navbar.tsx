@@ -3,7 +3,17 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Store, LayoutDashboard, LogOut, User as UserIcon, Menu, X, ExternalLink } from 'lucide-react';
+import {
+  Store,
+  LayoutDashboard,
+  LogOut,
+  User as UserIcon,
+  Menu,
+  X,
+  ExternalLink,
+  ShieldAlert,
+  Heart,
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from './Toast';
 
@@ -18,7 +28,7 @@ export const Navbar: React.FC = () => {
     success('You have successfully logged out.');
   };
 
-  const isActive = (path: string) => pathname === path;
+  const isActive = (path: string) => pathname === path || pathname.startsWith(path + '/');
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md">
@@ -36,11 +46,11 @@ export const Navbar: React.FC = () => {
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-6">
+        <nav className="hidden md:flex items-center gap-5">
           <Link
             href="/"
             className={`text-sm font-medium transition-colors ${
-              isActive('/') ? 'text-amber-400 font-semibold' : 'text-zinc-400 hover:text-zinc-200'
+              pathname === '/' ? 'text-amber-400 font-semibold' : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
             Home
@@ -48,11 +58,23 @@ export const Navbar: React.FC = () => {
           <Link
             href="/stores"
             className={`text-sm font-medium transition-colors ${
-              isActive('/stores') ? 'text-amber-400 font-semibold' : 'text-zinc-400 hover:text-zinc-200'
+              pathname === '/stores' ? 'text-amber-400 font-semibold' : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
             Explore Stores
           </Link>
+
+          {user && (
+            <Link
+              href="/favorites"
+              className={`flex items-center gap-1.5 text-sm font-medium transition-colors ${
+                isActive('/favorites') ? 'text-amber-400 font-semibold' : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              <Heart className="w-4 h-4 text-rose-400" />
+              <span>Favorites</span>
+            </Link>
+          )}
 
           {user?.role === 'STORE_OWNER' && (
             <Link
@@ -64,7 +86,21 @@ export const Navbar: React.FC = () => {
               }`}
             >
               <LayoutDashboard className="w-4 h-4" />
-              <span>Owner Dashboard</span>
+              <span>Owner Portal</span>
+            </Link>
+          )}
+
+          {user?.role === 'ADMIN' && (
+            <Link
+              href="/admin/dashboard"
+              className={`flex items-center gap-1.5 text-sm font-semibold transition-colors px-2.5 py-1 rounded-lg border ${
+                isActive('/admin')
+                  ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 shadow-sm shadow-rose-500/20'
+                  : 'text-rose-400 border-rose-900/50 hover:bg-rose-950/40'
+              }`}
+            >
+              <ShieldAlert className="w-4 h-4" />
+              <span>Admin Portal</span>
             </Link>
           )}
 
@@ -93,12 +129,14 @@ export const Navbar: React.FC = () => {
                   </span>
                   <span
                     className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded w-fit ${
-                      user.role === 'STORE_OWNER'
+                      user.role === 'ADMIN'
+                        ? 'bg-rose-950/80 text-rose-300 border border-rose-800/60'
+                        : user.role === 'STORE_OWNER'
                         ? 'bg-purple-950/80 text-purple-300 border border-purple-800/60'
                         : 'bg-emerald-950/80 text-emerald-300 border border-emerald-800/60'
                     }`}
                   >
-                    {user.role === 'STORE_OWNER' ? 'Owner' : 'User'}
+                    {user.role === 'ADMIN' ? 'Admin' : user.role === 'STORE_OWNER' ? 'Owner' : 'User'}
                   </span>
                 </div>
               </div>
@@ -157,13 +195,31 @@ export const Navbar: React.FC = () => {
           >
             Explore Stores
           </Link>
+          {user && (
+            <Link
+              href="/favorites"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block text-sm font-medium text-rose-400"
+            >
+              My Favorites
+            </Link>
+          )}
           {user?.role === 'STORE_OWNER' && (
             <Link
               href="/owner/dashboard"
               onClick={() => setMobileMenuOpen(false)}
               className="block text-sm font-medium text-amber-400"
             >
-              Owner Dashboard
+              Owner Portal
+            </Link>
+          )}
+          {user?.role === 'ADMIN' && (
+            <Link
+              href="/admin/dashboard"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block text-sm font-medium text-rose-400"
+            >
+              Admin Portal
             </Link>
           )}
           <div className="pt-3 border-t border-zinc-800">

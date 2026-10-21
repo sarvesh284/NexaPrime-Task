@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Store, Lock, Mail, Loader2, ArrowRight, UserCheck, ShieldAlert } from 'lucide-react';
+import { Store, Lock, Mail, Loader2, ArrowRight, UserCheck, ShieldAlert, Shield } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/Toast';
 import { ApiError } from '../../lib/api';
@@ -31,8 +31,9 @@ export default function LoginPage() {
       await login(email, password);
       success('Logged in successfully!');
 
-      // Redirect depending on user role
-      if (email.includes('owner')) {
+      if (email.includes('admin')) {
+        router.push('/admin/dashboard');
+      } else if (email.includes('owner')) {
         router.push('/owner/dashboard');
       } else {
         router.push('/stores');
@@ -54,8 +55,16 @@ export default function LoginPage() {
     try {
       setIsLoading(true);
       await login(demoEmail, 'Password@123');
-      success(`Logged in as ${demoEmail.includes('owner') ? 'Store Owner' : 'Normal User'}!`);
-      if (demoEmail.includes('owner')) {
+      const roleName = demoEmail.includes('admin')
+        ? 'Platform Admin'
+        : demoEmail.includes('owner')
+        ? 'Store Owner'
+        : 'Normal User';
+      success(`Logged in as ${roleName}!`);
+
+      if (demoEmail.includes('admin')) {
+        router.push('/admin/dashboard');
+      } else if (demoEmail.includes('owner')) {
         router.push('/owner/dashboard');
       } else {
         router.push('/stores');
@@ -71,14 +80,14 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-[85vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 bg-zinc-900 border border-zinc-800 rounded-2xl p-8 shadow-2xl relative">
+      <div className="max-w-md w-full space-y-7 bg-zinc-900 border border-zinc-800 rounded-2xl p-8 shadow-2xl relative">
         <div className="text-center">
           <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto mb-4">
             <Store className="w-6 h-6" />
           </div>
           <h2 className="text-2xl font-bold text-white tracking-tight">Sign in to your account</h2>
           <p className="mt-2 text-xs text-zinc-400">
-            Access your ratings or manage your owned stores
+            Access your ratings, manage your stores, or oversee the platform
           </p>
         </div>
 
@@ -88,31 +97,38 @@ export default function LoginPage() {
             <UserCheck className="w-4 h-4 text-amber-400" />
             <span>Instant Demo Access (1-Click)</span>
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <button
               type="button"
               disabled={isLoading}
               onClick={() => fillDemoAccount('sarvesh.user@example.com')}
-              className="py-2 px-3 rounded-lg bg-zinc-800/80 hover:bg-zinc-800 border border-zinc-700 text-left text-xs text-zinc-200 transition-colors flex items-center justify-between"
+              className="py-2 px-2.5 rounded-lg bg-zinc-800/80 hover:bg-zinc-800 border border-zinc-700 text-left text-xs text-zinc-200 transition-colors flex flex-col justify-between"
             >
-              <div>
-                <p className="font-semibold text-amber-300">Normal User</p>
-                <p className="text-[10px] text-zinc-400">sarvesh.user</p>
-              </div>
-              <ArrowRight className="w-3.5 h-3.5 text-zinc-500" />
+              <p className="font-semibold text-amber-300">User</p>
+              <p className="text-[10px] text-zinc-400 truncate">sarvesh.user</p>
             </button>
 
             <button
               type="button"
               disabled={isLoading}
               onClick={() => fillDemoAccount('sarvesh.owner@example.com')}
-              className="py-2 px-3 rounded-lg bg-zinc-800/80 hover:bg-zinc-800 border border-zinc-700 text-left text-xs text-zinc-200 transition-colors flex items-center justify-between"
+              className="py-2 px-2.5 rounded-lg bg-zinc-800/80 hover:bg-zinc-800 border border-zinc-700 text-left text-xs text-zinc-200 transition-colors flex flex-col justify-between"
             >
-              <div>
-                <p className="font-semibold text-purple-300">Store Owner</p>
-                <p className="text-[10px] text-zinc-400">sarvesh.owner</p>
-              </div>
-              <ArrowRight className="w-3.5 h-3.5 text-zinc-500" />
+              <p className="font-semibold text-purple-300">Owner</p>
+              <p className="text-[10px] text-zinc-400 truncate">sarvesh.owner</p>
+            </button>
+
+            <button
+              type="button"
+              disabled={isLoading}
+              onClick={() => fillDemoAccount('sarvesh.admin@example.com')}
+              className="py-2 px-2.5 rounded-lg bg-rose-950/40 hover:bg-rose-950/60 border border-rose-800/60 text-left text-xs text-zinc-200 transition-colors flex flex-col justify-between"
+            >
+              <p className="font-semibold text-rose-300 flex items-center gap-1">
+                <Shield className="w-3 h-3 text-rose-400" />
+                <span>Admin</span>
+              </p>
+              <p className="text-[10px] text-rose-400/80 truncate">sarvesh.admin</p>
             </button>
           </div>
         </div>
@@ -124,7 +140,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>
             <label className="block text-xs font-semibold text-zinc-300 mb-1">
               Email Address
@@ -143,9 +159,17 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-zinc-300 mb-1">
-              Password
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-semibold text-zinc-300">
+                Password
+              </label>
+              <Link
+                href="/forgot-password"
+                className="text-xs text-amber-400/90 hover:text-amber-300 transition-colors"
+              >
+                Forgot password?
+              </Link>
+            </div>
             <div className="relative">
               <Lock className="w-4 h-4 text-zinc-500 absolute left-3 top-3" />
               <input

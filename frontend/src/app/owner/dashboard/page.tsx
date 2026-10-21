@@ -14,16 +14,28 @@ import {
   ShieldAlert,
   Loader2,
   Building2,
+  Download,
+  Calendar,
+  BarChart3,
+  Filter,
 } from 'lucide-react';
-import { api } from '../../../lib/api';
-import { OwnerDashboardData, RatingItem, Pagination } from '../../../types';
+import { api, ApiError } from '../../../lib/api';
+import {
+  OwnerDashboardData,
+  RatingItem,
+  Pagination,
+  OwnerAnalyticsData,
+} from '../../../types';
 import { StarRating } from '../../../components/StarRating';
 import { useAuth } from '../../../context/AuthContext';
+import { useToast } from '../../../components/Toast';
 
 export default function OwnerDashboardPage() {
   const { user, isLoading: authLoading } = useAuth();
+  const { success, error: toastError } = useToast();
 
   const [dashboard, setDashboard] = useState<OwnerDashboardData | null>(null);
+  const [analytics, setAnalytics] = useState<OwnerAnalyticsData | null>(null);
   const [ratings, setRatings] = useState<RatingItem[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
     total: 0,
@@ -33,13 +45,19 @@ export default function OwnerDashboardPage() {
   });
 
   const [selectedStoreId, setSelectedStoreId] = useState<string>('');
+  const [selectedRating, setSelectedRating] = useState<string>('');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [sort] = useState<'createdAt' | 'value' | 'updatedAt' | 'storeName'>('createdAt');
   const [order] = useState<'asc' | 'desc'>('desc');
 
   const [loadingDashboard, setLoadingDashboard] = useState(true);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(true);
   const [loadingRatings, setLoadingRatings] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Search debounce
   useEffect(() => {
@@ -50,7 +68,7 @@ export default function OwnerDashboardPage() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Fetch Dashboard Stats
+  // Fetch Dashboard Stats Overview
   useEffect(() => {
     if (authLoading || user?.role !== 'STORE_OWNER') return;
     let isMounted = true;
@@ -66,9 +84,7 @@ export default function OwnerDashboardPage() {
         }
       })
       .catch(() => {
-        if (isMounted) {
-          setLoadingDashboard(false);
-        }
+        if (isMounted) setLoadingDashboard(false);
       });
 
     return () => {
@@ -76,15 +92,51 @@ export default function OwnerDashboardPage() {
     };
   }, [authLoading, user]);
 
-  // Fetch Customer Ratings
+  // Fetch Advanced Analytics
   useEffect(() => {
     if (authLoading || user?.role !== 'STORE_OWNER') return;
     let isMounted = true;
+    setLoadingAnalytics(true);
+
+    api
+      .get<{ analytics: OwnerAnalyticsData }>('/owner/analytics', {
+        params: {
+          storeId: selectedStoreId || undefined,
+          rating: selectedRating ? parseInt(selectedRating, 10) : undefined,
+          startDate: startDate || undefined,
+          endDate: endDate || undefined,
+        },
+      })
+      .then((res) => {
+        if (isMounted) {
+          if (res.data?.analytics) {
+            setAnalytics(res.data.analytics);
+          }
+          setLoadingAnalytics(false);
+        }
+      })
+      .catch(() => {
+        if (isMounted) setLoadingAnalytics(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [authLoading, user, selectedStoreId, selectedRating, startDate, endDate]);
+
+  // Fetch Customer Ratings List
+  useEffect(() => {
+    if (authLoading || user?.role !== 'STORE_OWNER') return;
+    let isMounted = true;
+    setLoadingRatings(true);
 
     api
       .get<{ ratings: RatingItem[] }>('/owner/ratings', {
         params: {
           storeId: selectedStoreId || undefined,
+          rating: selectedRating ? parseInt(selectedRating, 10) : undefined,
+          startDate: startDate || undefined,
+          endDate: endDate || undefined,
           search: debouncedSearch || undefined,
           page: pagination.page,
           limit: pagination.limit,
@@ -104,15 +156,64 @@ export default function OwnerDashboardPage() {
         }
       })
       .catch(() => {
-        if (isMounted) {
-          setLoadingRatings(false);
-        }
+        if (isMounted) setLoadingRatings(false);
       });
 
     return () => {
       isMounted = false;
     };
-  }, [authLoading, user, selectedStoreId, debouncedSearch, pagination.page, pagination.limit, sort, order]);
+  }, [
+    authLoading,
+    user,
+    selectedStoreId,
+    selectedRating,
+    startDate,
+    endDate,
+    debouncedSearch,
+    pagination.page,
+    pagination.limit,
+    sort,
+    order,
+  ]);
+
+  const handleExportCsv = async () => {
+    try {
+      setIsExporting(true);
+      const queryParams = new URLSearchParams();
+      if (selectedStoreId) queryParams.append('storeId', selectedStoreId);
+      if (selectedRating) queryParams.append('rating', selectedRating);
+      if (startDate) queryParams.append('startDate', startDate);
+      if (endDate) queryParams.append('endDate', endDate);
+      if (debouncedSearch) queryParams.append('search', debouncedSearch);
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+      const response = await fetch(`${apiUrl}/owner/ratings/export?${queryParams.toString()}`, {
+        credentials: 'include',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to export CSV');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ratings-export-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      success('CSV export generated and downloaded successfully.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'CSV export failed.';
+      toastError(msg);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // Loading state for auth
   if (authLoading) {
@@ -154,13 +255,13 @@ export default function OwnerDashboardPage() {
     );
   }
 
-  const distribution = dashboard?.distribution || { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-  const totalRatingsCount = dashboard?.totalRatings || 0;
+  const distribution = analytics?.distribution || dashboard?.distribution || { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  const totalRatingsCount = analytics?.totalRatings ?? dashboard?.totalRatings ?? 0;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full flex-1">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full flex-1 space-y-8">
       {/* Dashboard Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between pb-8 border-b border-zinc-800 gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-zinc-800 gap-4">
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold text-purple-400 uppercase tracking-wider mb-1">
             <LayoutDashboard className="w-4 h-4" />
@@ -168,298 +269,314 @@ export default function OwnerDashboardPage() {
           </div>
           <h1 className="text-3xl font-black text-white tracking-tight">Business Analytics Dashboard</h1>
           <p className="text-zinc-400 text-xs mt-1">
-            Real-time performance metrics and customer rating breakdown for your establishments
+            Real-time performance metrics, trend forecasts, and customer review feedback
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="text-right">
-            <p className="text-xs font-bold text-white">{user.name}</p>
-            <p className="text-[11px] text-zinc-400">{user.email}</p>
-          </div>
-          <div className="w-9 h-9 rounded-full bg-purple-950 border border-purple-800 text-purple-300 flex items-center justify-center text-xs font-bold">
-            SO
-          </div>
+          <button
+            onClick={handleExportCsv}
+            disabled={isExporting}
+            className="py-2 px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold border border-zinc-700 flex items-center gap-2 transition-colors disabled:opacity-50"
+          >
+            {isExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+            <span>Export CSV</span>
+          </button>
         </div>
       </div>
 
       {/* KPI Cards */}
       {loadingDashboard ? (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mt-8">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-36 rounded-2xl bg-zinc-900/60 border border-zinc-800 animate-pulse" />
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-28 rounded-2xl bg-zinc-900/60 border border-zinc-800 animate-pulse" />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mt-8">
-          <div className="p-6 rounded-2xl bg-zinc-900 border border-zinc-800 relative overflow-hidden">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-zinc-400">Stores Managed</span>
-              <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400">
-                <Building2 className="w-5 h-5" />
-              </div>
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <div className="p-5 rounded-2xl bg-zinc-900 border border-zinc-800">
+            <div className="flex items-center justify-between text-zinc-400 text-xs font-medium">
+              <span>Stores Managed</span>
+              <Building2 className="w-4 h-4 text-purple-400" />
             </div>
-          <p className="text-3xl font-black text-white mt-4">{dashboard?.totalStores ?? 0}</p>
-          <p className="text-xs text-zinc-500 mt-1">Active registered establishments</p>
-        </div>
+            <p className="text-2xl font-black text-white mt-2">{dashboard?.totalStores ?? 0}</p>
+            <p className="text-[11px] text-zinc-500 mt-1">Active locations</p>
+          </div>
 
-        <div className="p-6 rounded-2xl bg-zinc-900 border border-zinc-800 relative overflow-hidden">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-zinc-400">Overall Average Rating</span>
-            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400">
-              <Star className="w-5 h-5 fill-amber-400" />
+          <div className="p-5 rounded-2xl bg-zinc-900 border border-zinc-800">
+            <div className="flex items-center justify-between text-zinc-400 text-xs font-medium">
+              <span>Overall Rating</span>
+              <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
             </div>
+            <div className="flex items-baseline gap-1.5 mt-2">
+              <p className="text-2xl font-black text-white">
+                {dashboard?.averageRating ? dashboard.averageRating.toFixed(1) : '0.0'}
+              </p>
+              <span className="text-xs text-zinc-500">/ 5.0</span>
+            </div>
+            <p className="text-[11px] text-zinc-500 mt-1">Across all stores</p>
           </div>
-          <div className="flex items-baseline gap-2 mt-4">
-            <p className="text-3xl font-black text-white">
-              {dashboard?.averageRating ? dashboard.averageRating.toFixed(1) : '0.0'}
-            </p>
-            <span className="text-xs text-zinc-500 font-medium">/ 5.0</span>
-          </div>
-          <div className="mt-2">
-            <StarRating value={dashboard?.averageRating || 0} size="sm" />
-          </div>
-        </div>
 
-        <div className="p-6 rounded-2xl bg-zinc-900 border border-zinc-800 relative overflow-hidden">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-zinc-400">Total Customer Ratings</span>
-            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
-              <Users className="w-5 h-5" />
+          <div className="p-5 rounded-2xl bg-zinc-900 border border-zinc-800">
+            <div className="flex items-center justify-between text-zinc-400 text-xs font-medium">
+              <span>Total Ratings</span>
+              <Users className="w-4 h-4 text-emerald-400" />
             </div>
+            <p className="text-2xl font-black text-white mt-2">{totalRatingsCount}</p>
+            <p className="text-[11px] text-zinc-500 mt-1">Visible reviews</p>
           </div>
-          <p className="text-3xl font-black text-white mt-4">{totalRatingsCount}</p>
-          <p className="text-xs text-zinc-500 mt-1">Unique customer submissions</p>
+
+          <div className="p-5 rounded-2xl bg-zinc-900 border border-zinc-800">
+            <div className="flex items-center justify-between text-zinc-400 text-xs font-medium">
+              <span>Filtered Period Ratings</span>
+              <TrendingUp className="w-4 h-4 text-blue-400" />
+            </div>
+            <p className="text-2xl font-black text-white mt-2">{analytics?.periodNewRatings ?? totalRatingsCount}</p>
+            <p className="text-[11px] text-zinc-500 mt-1">In selected range</p>
+          </div>
         </div>
-      </div>
       )}
 
-      {/* Analytics & Owned Stores Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-8">
-        {/* Rating Distribution Visualizer */}
-        <div className="lg:col-span-5 p-6 rounded-2xl bg-zinc-900 border border-zinc-800 flex flex-col justify-between">
-          <div>
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-amber-400" />
-              <span>Rating Distribution (1–5 Stars)</span>
+      {/* Analytics Filter Toolbar */}
+      <div className="p-4 rounded-2xl bg-zinc-900 border border-zinc-800 flex flex-wrap items-center gap-3 text-xs">
+        <div className="flex items-center gap-1.5 text-zinc-400 font-semibold">
+          <Filter className="w-4 h-4 text-amber-400" />
+          <span>Filters:</span>
+        </div>
+
+        {/* Store Selector */}
+        <select
+          value={selectedStoreId}
+          onChange={(e) => setSelectedStoreId(e.target.value)}
+          className="py-1.5 px-3 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs focus:outline-none focus:border-amber-400 cursor-pointer"
+        >
+          <option value="">All Owned Stores</option>
+          {dashboard?.stores?.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name}
+            </option>
+          ))}
+        </select>
+
+        {/* Star Rating Selector */}
+        <select
+          value={selectedRating}
+          onChange={(e) => setSelectedRating(e.target.value)}
+          className="py-1.5 px-3 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs focus:outline-none focus:border-amber-400 cursor-pointer"
+        >
+          <option value="">All Star Ratings</option>
+          <option value="5">5 Stars Only</option>
+          <option value="4">4 Stars Only</option>
+          <option value="3">3 Stars Only</option>
+          <option value="2">2 Stars Only</option>
+          <option value="1">1 Star Only</option>
+        </select>
+
+        {/* Start Date */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-zinc-500">From:</span>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="py-1 px-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs focus:outline-none focus:border-amber-400"
+          />
+        </div>
+
+        {/* End Date */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-zinc-500">To:</span>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="py-1 px-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs focus:outline-none focus:border-amber-400"
+          />
+        </div>
+
+        {(selectedStoreId || selectedRating || startDate || endDate) && (
+          <button
+            onClick={() => {
+              setSelectedStoreId('');
+              setSelectedRating('');
+              setStartDate('');
+              setEndDate('');
+            }}
+            className="text-xs text-amber-400 hover:underline font-semibold ml-auto"
+          >
+            Clear Filters
+          </button>
+        )}
+      </div>
+
+      {/* Visual Charts & Comparisons */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Daily Rating Trends Chart */}
+        <div className="lg:col-span-8 p-6 rounded-2xl bg-zinc-900 border border-zinc-800 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-amber-400" />
+              <span>Rating Volume Trend Over Time</span>
             </h3>
-            <p className="text-xs text-zinc-400 mt-0.5">
-              Breakdown of customer feedback scores across your stores
-            </p>
+            <span className="text-[11px] text-zinc-500">Daily Breakdown</span>
+          </div>
 
-            <div className="mt-6 space-y-3">
-              {[5, 4, 3, 2, 1].map((star) => {
-                const count = distribution[star] || 0;
-                const percentage = totalRatingsCount > 0 ? Math.round((count / totalRatingsCount) * 100) : 0;
+          {loadingAnalytics ? (
+            <div className="h-44 flex items-center justify-center">
+              <Loader2 className="w-6 h-6 text-amber-400 animate-spin" />
+            </div>
+          ) : analytics?.dailyTrends && analytics.dailyTrends.length > 0 ? (
+            <div className="h-44 flex items-end gap-2 pt-6 pb-2 border-b border-zinc-800 overflow-x-auto">
+              {analytics.dailyTrends.map((trend) => {
+                const maxCount = Math.max(...analytics.dailyTrends.map((t) => t.count), 1);
+                const heightPercent = Math.max(15, Math.round((trend.count / maxCount) * 100));
                 return (
-                  <div key={star} className="flex items-center gap-3 text-xs">
-                    <div className="flex items-center gap-1 w-14 shrink-0 font-semibold text-zinc-300">
-                      <span>{star}</span>
-                      <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                    </div>
-
-                    <div className="flex-1 h-3 rounded-full bg-zinc-950 border border-zinc-800 overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-500 ${
-                          star >= 4
-                            ? 'bg-amber-400'
-                            : star === 3
-                            ? 'bg-yellow-500'
-                            : 'bg-rose-500'
-                        }`}
-                        style={{ width: `${percentage}%` }}
-                      />
-                    </div>
-
-                    <div className="w-16 text-right shrink-0 text-zinc-400 font-mono text-[11px]">
-                      {count} ({percentage}%)
-                    </div>
+                  <div key={trend.date} className="flex-1 flex flex-col items-center gap-1 min-w-[36px]">
+                    <span className="text-[10px] text-zinc-400 font-semibold">{trend.count}</span>
+                    <div
+                      className="w-full rounded-t-lg bg-gradient-to-t from-amber-500 to-amber-300 transition-all"
+                      style={{ height: `${heightPercent}%` }}
+                      title={`${trend.date}: ${trend.count} ratings (avg: ${trend.averageRating})`}
+                    />
+                    <span className="text-[9px] text-zinc-500 truncate w-full text-center">
+                      {trend.date.slice(5)}
+                    </span>
                   </div>
                 );
               })}
             </div>
-          </div>
-
-          <div className="mt-6 pt-4 border-t border-zinc-800 text-[11px] text-zinc-500 text-center">
-            Calculated exclusively from verified database rating records
-          </div>
+          ) : (
+            <div className="h-44 flex flex-col items-center justify-center text-zinc-500 text-xs space-y-1">
+              <Calendar className="w-6 h-6 text-zinc-600" />
+              <p>No rating activity recorded in this selected range</p>
+            </div>
+          )}
         </div>
 
-        {/* Owned Stores Overview */}
-        <div className="lg:col-span-7 p-6 rounded-2xl bg-zinc-900 border border-zinc-800">
-          <h3 className="text-base font-bold text-white flex items-center gap-2">
-            <StoreIcon className="w-4 h-4 text-purple-400" />
-            <span>Owned Stores Overview</span>
+        {/* Rating Distribution */}
+        <div className="lg:col-span-4 p-6 rounded-2xl bg-zinc-900 border border-zinc-800 space-y-4">
+          <h3 className="text-sm font-bold text-white flex items-center gap-2">
+            <Star className="w-4 h-4 text-amber-400" />
+            <span>Rating Distribution</span>
           </h3>
-          <p className="text-xs text-zinc-400 mt-0.5">
-            Quick statistics for each of your active locations
-          </p>
 
-          <div className="mt-4 space-y-3">
-            {dashboard?.stores && dashboard.stores.length > 0 ? (
-              dashboard.stores.map((s) => (
-                <div
-                  key={s.id}
-                  className="p-3.5 rounded-xl bg-zinc-950/70 border border-zinc-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-white truncate">{s.name}</p>
-                    <p className="text-xs text-zinc-400 truncate mt-0.5">{s.address}</p>
+          <div className="space-y-2.5">
+            {[5, 4, 3, 2, 1].map((star) => {
+              const count = distribution[star] || 0;
+              const percentage = totalRatingsCount > 0 ? Math.round((count / totalRatingsCount) * 100) : 0;
+              return (
+                <div key={star} className="flex items-center gap-2.5 text-xs">
+                  <div className="flex items-center gap-1 w-12 text-zinc-300 font-semibold">
+                    <span>{star}</span>
+                    <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
                   </div>
-                  <div className="flex items-center gap-4 shrink-0">
-                    <div className="text-right">
-                      <div className="flex items-center gap-1.5 justify-end">
-                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                        <span className="text-xs font-bold text-white">
-                          {s.averageRating > 0 ? s.averageRating.toFixed(1) : '0.0'}
-                        </span>
-                      </div>
-                      <span className="text-[10px] text-zinc-500">{s.totalRatings} ratings</span>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setSelectedStoreId(s.id === selectedStoreId ? '' : s.id);
-                        setPagination((p) => ({ ...p, page: 1 }));
-                      }}
-                      className={`text-xs font-semibold px-2.5 py-1.5 rounded-lg border transition-colors ${
-                        selectedStoreId === s.id
-                          ? 'bg-amber-500 text-black border-amber-400'
-                          : 'bg-zinc-800 text-zinc-300 border-zinc-700 hover:text-white'
-                      }`}
-                    >
-                      {selectedStoreId === s.id ? 'Viewing Filter' : 'Filter Ratings'}
-                    </button>
+                  <div className="flex-1 h-2 rounded-full bg-zinc-950 border border-zinc-800 overflow-hidden">
+                    <div
+                      className="h-full bg-amber-400 rounded-full"
+                      style={{ width: `${percentage}%` }}
+                    />
                   </div>
+                  <span className="w-12 text-right text-zinc-500 text-[11px] font-mono">
+                    {count}
+                  </span>
                 </div>
-              ))
-            ) : (
-              <p className="text-xs text-zinc-500 py-6 text-center">No owned stores found.</p>
-            )}
+              );
+            })}
           </div>
         </div>
       </div>
 
-      {/* Customer Ratings Table Section */}
-      <div className="mt-10 p-6 rounded-2xl bg-zinc-900 border border-zinc-800">
-        <div className="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-zinc-800 gap-4">
+      {/* Customer Ratings Log Table */}
+      <div className="p-6 rounded-2xl bg-zinc-900 border border-zinc-800 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-zinc-800 gap-3">
           <div>
-            <h3 className="text-lg font-bold text-white">Customer Rating Logs</h3>
+            <h3 className="text-base font-bold text-white">Customer Reviews & Ratings Feed</h3>
             <p className="text-xs text-zinc-400 mt-0.5">
-              Detailed list of individual user ratings with customer names, emails, and dates
+              Verified individual ratings and comments submitted for your stores
             </p>
           </div>
 
-          {/* Table Filters */}
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Filter by store */}
-            <select
-              value={selectedStoreId}
-              onChange={(e) => {
-                setSelectedStoreId(e.target.value);
-                setPagination((p) => ({ ...p, page: 1 }));
-              }}
-              className="py-2 px-3 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs focus:outline-none focus:border-amber-400"
-            >
-              <option value="">All Owned Stores</option>
-              {dashboard?.stores?.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-
-            {/* Search user/store */}
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-2.5" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search customer or store..."
-                className="pl-8 pr-3 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs placeholder-zinc-500 focus:outline-none focus:border-amber-400 w-52"
-              />
-            </div>
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-2.5" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search comments or customer..."
+              className="pl-8 pr-3 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs placeholder-zinc-500 focus:outline-none focus:border-amber-400 w-60"
+            />
           </div>
         </div>
 
-        {/* Ratings Table */}
-        <div className="mt-4 overflow-x-auto">
-          {loadingRatings ? (
-            <div className="py-12 flex items-center justify-center">
-              <Loader2 className="w-6 h-6 text-amber-400 animate-spin" />
-            </div>
-          ) : ratings.length > 0 ? (
+        {loadingRatings ? (
+          <div className="py-12 flex justify-center">
+            <Loader2 className="w-6 h-6 text-amber-400 animate-spin" />
+          </div>
+        ) : ratings.length > 0 ? (
+          <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-zinc-300">
               <thead className="text-[11px] uppercase tracking-wider text-zinc-500 border-b border-zinc-800/80 bg-zinc-950/40">
                 <tr>
-                  <th className="py-3 px-4 font-semibold">Customer</th>
-                  <th className="py-3 px-4 font-semibold">Email</th>
                   <th className="py-3 px-4 font-semibold">Store</th>
+                  <th className="py-3 px-4 font-semibold">Customer</th>
                   <th className="py-3 px-4 font-semibold">Rating</th>
+                  <th className="py-3 px-4 font-semibold">Comment</th>
                   <th className="py-3 px-4 font-semibold">Date</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-800/60 font-normal">
+              <tbody className="divide-y divide-zinc-800/60">
                 {ratings.map((r) => (
                   <tr key={r.id} className="hover:bg-zinc-800/30 transition-colors">
                     <td className="py-3 px-4 font-semibold text-white whitespace-nowrap">
-                      {r.user?.name || 'Anonymous User'}
+                      {r.store?.name}
                     </td>
-                    <td className="py-3 px-4 text-zinc-400 font-mono text-[11px] whitespace-nowrap">
-                      {r.user?.email || 'N/A'}
-                    </td>
-                    <td className="py-3 px-4 text-zinc-300 whitespace-nowrap">
-                      {r.store?.name || 'N/A'}
+                    <td className="py-3 px-4">
+                      <p className="font-medium text-zinc-200">{r.user?.name}</p>
+                      <p className="text-[10px] text-zinc-500 font-mono">{r.user?.email}</p>
                     </td>
                     <td className="py-3 px-4 whitespace-nowrap">
                       <span className="inline-flex items-center gap-1 font-bold px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-300 border border-amber-500/20">
                         <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                        {r.rating} Stars
+                        {r.rating} ★
                       </span>
                     </td>
+                    <td className="py-3 px-4 max-w-xs text-zinc-300 truncate">
+                      {r.comment || <span className="text-zinc-600 italic">No written comment</span>}
+                    </td>
                     <td className="py-3 px-4 text-zinc-400 whitespace-nowrap">
-                      {new Date(r.createdAt).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
+                      {new Date(r.createdAt).toLocaleDateString()}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          ) : (
-            <div className="py-16 text-center text-zinc-500 text-xs">
-              <Users className="w-8 h-8 text-zinc-600 mx-auto mb-2" />
-              <p className="font-semibold text-zinc-400">No ratings found</p>
-              <p className="text-[11px] text-zinc-500 mt-0.5">
-                {selectedStoreId || search
-                  ? 'No ratings match your filter criteria.'
-                  : 'No customers have rated your stores yet.'}
-              </p>
-            </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="py-12 text-center text-zinc-500 text-xs">
+            <Users className="w-8 h-8 text-zinc-600 mx-auto mb-2" />
+            <p className="font-semibold text-zinc-400">No ratings match your filter</p>
+          </div>
+        )}
 
         {/* Table Pagination */}
         {pagination.totalPages > 1 && (
-          <div className="mt-4 pt-4 border-t border-zinc-800 flex items-center justify-between text-xs text-zinc-400">
+          <div className="pt-4 border-t border-zinc-800 flex items-center justify-between text-xs text-zinc-400">
             <span>
-              Page {pagination.page} of {pagination.totalPages} ({pagination.total} ratings total)
+              Page {pagination.page} of {pagination.totalPages} ({pagination.total} records)
             </span>
 
             <div className="flex items-center gap-2">
               <button
                 disabled={pagination.page <= 1}
                 onClick={() => setPagination((p) => ({ ...p, page: p.page - 1 }))}
-                className="p-1.5 rounded-lg border border-zinc-800 bg-zinc-950 hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="p-1.5 rounded-lg border border-zinc-800 bg-zinc-950 hover:bg-zinc-800 disabled:opacity-40"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <button
                 disabled={pagination.page >= pagination.totalPages}
                 onClick={() => setPagination((p) => ({ ...p, page: p.page + 1 }))}
-                className="p-1.5 rounded-lg border border-zinc-800 bg-zinc-950 hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="p-1.5 rounded-lg border border-zinc-800 bg-zinc-950 hover:bg-zinc-800 disabled:opacity-40"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>

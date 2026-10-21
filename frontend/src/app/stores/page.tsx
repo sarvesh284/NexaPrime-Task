@@ -1,15 +1,27 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, SlidersHorizontal, ArrowUpDown, ChevronLeft, ChevronRight, Store as StoreIcon, AlertCircle } from 'lucide-react';
-import { api } from '../../lib/api';
+import {
+  Search,
+  SlidersHorizontal,
+  ArrowUpDown,
+  ChevronLeft,
+  ChevronRight,
+  Store as StoreIcon,
+  AlertCircle,
+  Filter,
+} from 'lucide-react';
+import { api, ApiError } from '../../lib/api';
 import { Store, Pagination, StoreStats } from '../../types';
 import { StoreCard } from '../../components/StoreCard';
 import { RatingModal } from '../../components/RatingModal';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../components/Toast';
 
 export default function StoresPage() {
   const { user } = useAuth();
+  const { success, error: toastError } = useToast();
+
   const [stores, setStores] = useState<Store[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
     total: 0,
@@ -20,14 +32,33 @@ export default function StoresPage() {
 
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [sort, setSort] = useState<'name' | 'averageRating' | 'ratingCount'>('name');
+  const [category, setCategory] = useState<string>('');
+  const [city, setCity] = useState<string>('');
+  const [minRating, setMinRating] = useState<number | ''>('');
+
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
+  const [availableCities, setAvailableCities] = useState<string[]>([]);
+
+  const [sort, setSort] = useState<'name' | 'averageRating' | 'ratingCount' | 'bayesianRating'>('name');
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [selectedStoreForRating, setSelectedStoreForRating] = useState<Store | null>(null);
-
   const [reloadTrigger, setReloadTrigger] = useState(0);
+
+  // Fetch filter options on mount
+  useEffect(() => {
+    api
+      .get<{ categories: string[]; cities: string[] }>('/stores/filter-options')
+      .then((res) => {
+        if (res.data) {
+          setAvailableCategories(res.data.categories || []);
+          setAvailableCities(res.data.cities || []);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Debounce search input
   useEffect(() => {
@@ -44,6 +75,9 @@ export default function StoresPage() {
       .get<{ stores: Store[] }>('/stores', {
         params: {
           search: debouncedSearch || undefined,
+          category: category || undefined,
+          city: city || undefined,
+          minRating: minRating !== '' ? minRating : undefined,
           page: pagination.page,
           limit: pagination.limit,
           sort,
@@ -63,7 +97,7 @@ export default function StoresPage() {
       })
       .catch((err: unknown) => {
         if (isMounted) {
-          const msg = err instanceof Error ? err.message : 'Failed to load stores. Make sure the backend server is running.';
+          const msg = err instanceof Error ? err.message : 'Failed to load stores.';
           setError(msg);
           setIsLoading(false);
         }
@@ -72,7 +106,17 @@ export default function StoresPage() {
     return () => {
       isMounted = false;
     };
-  }, [debouncedSearch, pagination.page, pagination.limit, sort, order, reloadTrigger]);
+  }, [
+    debouncedSearch,
+    category,
+    city,
+    minRating,
+    pagination.page,
+    pagination.limit,
+    sort,
+    order,
+    reloadTrigger,
+  ]);
 
   const handleRatingSubmitted = (storeId: string, rating: number, storeStats?: StoreStats) => {
     setStores((prev) =>
@@ -89,6 +133,35 @@ export default function StoresPage() {
     );
   };
 
+  const handleToggleFavorite = async (storeId: string) => {
+    if (!user) {
+      toastError('Please sign in to save stores to your favorites.');
+      return;
+    }
+
+    try {
+      const res = await api.post<{ isFavorite: boolean; message: string }>(`/stores/${storeId}/favorite`);
+      setStores((prev) =>
+        prev.map((s) =>
+          s.id === storeId ? { ...s, isFavorite: res.data?.isFavorite } : s
+        )
+      );
+      success(res.data?.message || 'Favorites updated');
+    } catch (err: unknown) {
+      const msg = err instanceof ApiError ? err.message : 'Failed to update favorites.';
+      toastError(msg);
+    }
+  };
+
+  const resetFilters = () => {
+    setSearch('');
+    setCategory('');
+    setCity('');
+    setMinRating('');
+    setSort('name');
+    setOrder('asc');
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full flex-1">
       {/* Page Header */}
@@ -96,7 +169,7 @@ export default function StoresPage() {
         <div>
           <h1 className="text-3xl font-black text-white tracking-tight">Store Directory</h1>
           <p className="text-zinc-400 text-sm mt-1">
-            Browse registered stores, view community averages, and submit your verified ratings
+            Browse registered stores, filter by category, city, and quality scores
           </p>
         </div>
 
@@ -108,51 +181,120 @@ export default function StoresPage() {
         )}
       </div>
 
-      {/* Filter & Search Bar */}
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-        {/* Search */}
-        <div className="md:col-span-6 relative">
-          <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3.5" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search stores by name..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-white text-sm placeholder-zinc-500 focus:outline-none focus:border-amber-400 transition-colors"
-          />
-          {search && (
-            <button
-              onClick={() => setSearch('')}
-              className="absolute right-3 top-3 text-xs text-zinc-400 hover:text-white"
+      {/* Discovery Filters Bar */}
+      <div className="mt-8 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+          {/* Search */}
+          <div className="md:col-span-5 relative">
+            <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3.5" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by store name or address..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-white text-xs placeholder-zinc-500 focus:outline-none focus:border-amber-400 transition-colors"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-3 top-3 text-[11px] text-zinc-400 hover:text-white"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
+          {/* Category Filter */}
+          <div className="md:col-span-3">
+            <select
+              value={category}
+              onChange={(e) => {
+                setCategory(e.target.value);
+                setPagination((p) => ({ ...p, page: 1 }));
+              }}
+              className="w-full py-2.5 px-3 rounded-xl bg-zinc-900 border border-zinc-800 text-white text-xs focus:outline-none focus:border-amber-400 transition-colors cursor-pointer"
             >
-              Clear
+              <option value="">All Categories</option>
+              {availableCategories.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* City Filter */}
+          <div className="md:col-span-2">
+            <select
+              value={city}
+              onChange={(e) => {
+                setCity(e.target.value);
+                setPagination((p) => ({ ...p, page: 1 }));
+              }}
+              className="w-full py-2.5 px-3 rounded-xl bg-zinc-900 border border-zinc-800 text-white text-xs focus:outline-none focus:border-amber-400 transition-colors cursor-pointer"
+            >
+              <option value="">All Cities</option>
+              {availableCities.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Min Rating Filter */}
+          <div className="md:col-span-2">
+            <select
+              value={minRating}
+              onChange={(e) => {
+                setMinRating(e.target.value ? parseFloat(e.target.value) : '');
+                setPagination((p) => ({ ...p, page: 1 }));
+              }}
+              className="w-full py-2.5 px-3 rounded-xl bg-zinc-900 border border-zinc-800 text-white text-xs focus:outline-none focus:border-amber-400 transition-colors cursor-pointer"
+            >
+              <option value="">Any Rating</option>
+              <option value="3">3+ Stars ★</option>
+              <option value="4">4+ Stars ★</option>
+              <option value="4.5">4.5+ Stars ★</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Secondary Row: Sorting & Reset */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="flex items-center gap-1.5 text-zinc-400">
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span>Sort:</span>
+            </div>
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as any)}
+              className="py-1.5 px-3 rounded-xl bg-zinc-900 border border-zinc-800 text-white text-xs focus:outline-none focus:border-amber-400 cursor-pointer"
+            >
+              <option value="name">Name</option>
+              <option value="averageRating">Average Rating</option>
+              <option value="ratingCount">Total Ratings</option>
+              <option value="bayesianRating">Bayesian Quality Score</option>
+            </select>
+
+            <button
+              onClick={() => setOrder(order === 'asc' ? 'desc' : 'asc')}
+              className="py-1.5 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white flex items-center gap-1.5 transition-colors"
+            >
+              <ArrowUpDown className="w-3.5 h-3.5" />
+              <span>{order === 'asc' ? 'Ascending' : 'Descending'}</span>
+            </button>
+          </div>
+
+          {(search || category || city || minRating !== '') && (
+            <button
+              onClick={resetFilters}
+              className="text-xs text-amber-400 hover:text-amber-300 font-semibold"
+            >
+              Reset All Filters
             </button>
           )}
-        </div>
-
-        {/* Sort Field */}
-        <div className="md:col-span-4 flex items-center gap-2">
-          <SlidersHorizontal className="w-4 h-4 text-zinc-500 shrink-0" />
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value as 'name' | 'averageRating' | 'ratingCount')}
-            className="w-full py-2.5 px-3 rounded-xl bg-zinc-900 border border-zinc-800 text-white text-sm focus:outline-none focus:border-amber-400 transition-colors cursor-pointer"
-          >
-            <option value="name">Sort by Name</option>
-            <option value="averageRating">Sort by Average Rating</option>
-            <option value="ratingCount">Sort by Total Ratings</option>
-          </select>
-        </div>
-
-        {/* Order toggle */}
-        <div className="md:col-span-2">
-          <button
-            onClick={() => setOrder(order === 'asc' ? 'desc' : 'asc')}
-            className="w-full py-2.5 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs font-semibold text-zinc-300 hover:text-white transition-colors flex items-center justify-center gap-1.5"
-          >
-            <ArrowUpDown className="w-3.5 h-3.5" />
-            <span>{order === 'asc' ? 'Ascending (A–Z / Low)' : 'Descending (Z–A / High)'}</span>
-          </button>
         </div>
       </div>
 
@@ -197,26 +339,23 @@ export default function StoresPage() {
                 key={store.id}
                 store={store}
                 onOpenRating={(s) => setSelectedStoreForRating(s)}
+                onToggleFavorite={handleToggleFavorite}
               />
             ))}
           </div>
         ) : (
-          <div className="py-20 text-center rounded-2xl bg-zinc-900/40 border border-zinc-800/60">
-            <StoreIcon className="w-12 h-12 text-zinc-600 mx-auto mb-3" />
-            <h3 className="text-lg font-bold text-white">No stores match your search</h3>
-            <p className="text-zinc-400 text-xs mt-1 max-w-sm mx-auto">
-              {search
-                ? `No stores found matching "${search}". Try searching for another keyword.`
-                : 'No active stores available in the directory.'}
+          <div className="py-20 text-center rounded-2xl bg-zinc-900/40 border border-zinc-800/60 space-y-2">
+            <StoreIcon className="w-12 h-12 text-zinc-600 mx-auto" />
+            <h3 className="text-lg font-bold text-white">No stores match your filters</h3>
+            <p className="text-zinc-400 text-xs max-w-sm mx-auto">
+              Try adjusting your category, city, or minimum rating filters.
             </p>
-            {search && (
-              <button
-                onClick={() => setSearch('')}
-                className="mt-4 text-xs font-semibold text-amber-400 hover:underline"
-              >
-                Clear Search Filter
-              </button>
-            )}
+            <button
+              onClick={resetFilters}
+              className="mt-3 text-xs font-semibold text-amber-400 hover:underline"
+            >
+              Clear All Filters
+            </button>
           </div>
         )}
       </div>
