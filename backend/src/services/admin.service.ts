@@ -91,6 +91,137 @@ export class AdminService {
   }
 
   /**
+   * Platform-wide Analytics with trends, distributions, and top stores (A3)
+   */
+  static async getPlatformAnalytics() {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const [
+      userRegistrationsTrend,
+      storeCreationsTrend,
+      ratingTrends,
+      mostRatedStores,
+      highestRatedStores,
+      distributionAgg,
+      activeUsersCount,
+      inactiveUsersCount,
+      activeStoresCount,
+      inactiveStoresCount,
+    ] = await Promise.all([
+      // Users registered in last 30 days grouped by day
+      UserModel.aggregate([
+        { $match: { createdAt: { $gte: thirtyDaysAgo } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]),
+
+      // Stores created in last 30 days grouped by day
+      StoreModel.aggregate([
+        { $match: { createdAt: { $gte: thirtyDaysAgo } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]),
+
+      // Ratings created in last 30 days grouped by day
+      RatingModel.aggregate([
+        { $match: { createdAt: { $gte: thirtyDaysAgo }, status: 'VISIBLE' } },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+            count: { $sum: 1 },
+            avgRating: { $avg: '$value' },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]),
+
+      // Top 5 most-rated stores
+      StoreModel.find({ isActive: true })
+        .sort({ ratingCount: -1 })
+        .limit(5)
+        .select('name category city averageRating ratingCount')
+        .lean(),
+
+      // Top 5 highest-rated stores (minimum 3 ratings threshold)
+      StoreModel.find({ isActive: true, ratingCount: { $gte: 3 } })
+        .sort({ averageRating: -1, ratingCount: -1 })
+        .limit(5)
+        .select('name category city averageRating ratingCount')
+        .lean(),
+
+      // Platform-wide rating distribution (1 to 5)
+      RatingModel.aggregate([
+        { $match: { status: 'VISIBLE' } },
+        {
+          $group: {
+            _id: '$value',
+            count: { $sum: 1 },
+          },
+        },
+      ]),
+
+      UserModel.countDocuments({ isActive: true }),
+      UserModel.countDocuments({ isActive: false }),
+      StoreModel.countDocuments({ isActive: true }),
+      StoreModel.countDocuments({ isActive: false }),
+    ]);
+
+    const distribution: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    let totalRatings = 0;
+    for (const item of distributionAgg) {
+      if (item._id >= 1 && item._id <= 5) {
+        distribution[item._id] = item.count;
+        totalRatings += item.count;
+      }
+    }
+
+    return {
+      userGrowth: userRegistrationsTrend.map((d: any) => ({ date: d._id, count: d.count })),
+      storeGrowth: storeCreationsTrend.map((d: any) => ({ date: d._id, count: d.count })),
+      ratingTrends: ratingTrends.map((d: any) => ({
+        date: d._id,
+        count: d.count,
+        averageRating: Math.round(d.avgRating * 10) / 10,
+      })),
+      mostRatedStores: mostRatedStores.map((s: any) => ({
+        id: s._id.toString(),
+        name: s.name,
+        category: s.category,
+        city: s.city,
+        averageRating: s.averageRating,
+        ratingCount: s.ratingCount,
+      })),
+      highestRatedStores: highestRatedStores.map((s: any) => ({
+        id: s._id.toString(),
+        name: s.name,
+        category: s.category,
+        city: s.city,
+        averageRating: s.averageRating,
+        ratingCount: s.ratingCount,
+      })),
+      distribution,
+      totalRatings,
+      accountHealth: {
+        activeUsers: activeUsersCount,
+        inactiveUsers: inactiveUsersCount,
+        activeStores: activeStoresCount,
+        inactiveStores: inactiveStoresCount,
+      },
+    };
+  }
+
+  /**
    * Paginated User Management
    */
   static async getUsers(query: {

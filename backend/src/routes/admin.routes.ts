@@ -20,8 +20,9 @@ const router = Router();
 // Protect ALL admin routes with authentication and ADMIN role requirement
 router.use(requireAuth, requireRole('ADMIN'));
 
-// Platform KPIs
+// Platform KPIs & Analytics (A1 & A3)
 router.get('/kpis', AdminController.getKpis);
+router.get('/analytics', AdminController.getAnalytics);
 
 // User Management
 router.get('/users', validateQuery(adminUserQuerySchema), AdminController.getUsers);

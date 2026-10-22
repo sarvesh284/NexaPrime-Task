@@ -17,9 +17,20 @@ export class AuthController {
 
   static async login(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await AuthService.login(req.body);
+      const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0].trim() || req.ip || '127.0.0.1';
+      const userAgent = (req.headers['user-agent'] as string) || 'Unknown';
+      const result = await AuthService.login(req.body, ip, userAgent);
       setAuthCookie(res, result.token);
       sendSuccess(res, { user: result.user }, 'Login successful', 200);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getLoginHistory(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await AuthService.getLoginHistory(req.user!.userId);
+      sendSuccess(res, result, 'Login history retrieved', 200);
     } catch (error) {
       next(error);
     }
@@ -75,6 +86,16 @@ export class AuthController {
   static async resendVerification(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await AuthService.resendVerification(req.body.email);
+      sendSuccess(res, result, result.message, 200);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async revokeSessions(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await AuthService.revokeSessions(req.user!.userId);
+      clearAuthCookie(res);
       sendSuccess(res, result, result.message, 200);
     } catch (error) {
       next(error);

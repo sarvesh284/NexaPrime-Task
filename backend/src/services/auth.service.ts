@@ -63,7 +63,7 @@ export class AuthService {
     };
   }
 
-  static async login(input: LoginInput) {
+  static async login(input: LoginInput, ip: string = '127.0.0.1', userAgent: string = 'Unknown') {
     const user = await UserModel.findOne({ email: input.email }).select('+passwordHash');
     if (!user) {
       const error: any = new Error('Invalid email or password');
@@ -81,11 +81,37 @@ export class AuthService {
 
     const isMatch = await comparePassword(input.password, user.passwordHash);
     if (!isMatch) {
+      // Record failed attempt if user exists
+      await UserModel.updateOne(
+        { _id: user._id },
+        {
+          $push: {
+            loginHistory: {
+              $each: [{ ip, userAgent, timestamp: new Date(), status: 'FAILED' }],
+              $slice: -20,
+            },
+          },
+        }
+      );
+
       const error: any = new Error('Invalid email or password');
       error.statusCode = 401;
       error.code = 'INVALID_CREDENTIALS';
       throw error;
     }
+
+    // Record successful login (SEC4)
+    await UserModel.updateOne(
+      { _id: user._id },
+      {
+        $push: {
+          loginHistory: {
+            $each: [{ ip, userAgent, timestamp: new Date(), status: 'SUCCESS' }],
+            $slice: -20,
+          },
+        },
+      }
+    );
 
     const payload: IUserPayload = {
       userId: user._id.toString(),
@@ -108,6 +134,11 @@ export class AuthService {
       },
       token,
     };
+  }
+
+  static async getLoginHistory(userId: string) {
+    const user = await UserModel.findById(userId, 'loginHistory').lean();
+    return { loginHistory: (user?.loginHistory || []).reverse() };
   }
 
   static async getCurrentUser(userId: string) {
@@ -232,6 +263,24 @@ export class AuthService {
 
     return {
       message: 'If your account requires verification, a new verification link has been sent.',
+    };
+  }
+
+  /**
+   * Revoke all active user sessions (SEC3 / SEC4)
+   */
+  static async revokeSessions(userId: string) {
+    const user = await UserModel.findById(userId);
+    if (!user) {
+      const error: any = new Error('User not found');
+      error.statusCode = 404;
+      error.code = 'NOT_FOUND';
+      throw error;
+    }
+    user.tokenVersion = (user.tokenVersion || 1) + 1;
+    await user.save();
+    return {
+      message: 'All active sessions have been revoked successfully.',
     };
   }
 }

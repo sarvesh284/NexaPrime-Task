@@ -1,11 +1,20 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
+export interface IStoreCoordinates {
+  lat: number;
+  lng: number;
+}
+
 export interface IStore extends Document {
   name: string;
   email?: string;
   address: string;
   category: string;
   city: string;
+  description?: string;
+  phone?: string;
+  website?: string;
+  coordinates?: IStoreCoordinates;
   ownerId?: mongoose.Types.ObjectId;
   isActive: boolean;
   averageRating?: number;
@@ -49,6 +58,28 @@ const storeSchema = new Schema<IStore>(
       default: 'General',
       trim: true,
       index: true,
+    },
+    description: {
+      type: String,
+      maxlength: 1000,
+      trim: true,
+      default: '',
+    },
+    phone: {
+      type: String,
+      maxlength: 30,
+      trim: true,
+      default: '',
+    },
+    website: {
+      type: String,
+      maxlength: 200,
+      trim: true,
+      default: '',
+    },
+    coordinates: {
+      lat: { type: Number, default: 37.7749 },
+      lng: { type: Number, default: -122.4194 },
     },
     ownerId: {
       type: Schema.Types.ObjectId,

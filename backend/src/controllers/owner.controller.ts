@@ -41,4 +41,32 @@ export class OwnerController {
       next(error);
     }
   }
+
+  static async replyToRating(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const reply = req.body.reply || req.body.replyText;
+      const result = await OwnerService.replyToRating(req.user!.userId, req.params.id, reply);
+      sendSuccess(res, result, result.message, 200);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async deleteReply(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await OwnerService.deleteReply(req.user!.userId, req.params.id);
+      sendSuccess(res, result, result.message, 200);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async updateStoreProfile(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await OwnerService.updateStoreProfile(req.user!.userId, req.params.id, req.body);
+      sendSuccess(res, result, result.message, 200);
+    } catch (error) {
+      next(error);
+    }
+  }
 }

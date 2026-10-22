@@ -13,6 +13,15 @@ export class AdminController {
     }
   }
 
+  static async getAnalytics(_req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const analytics = await AdminService.getPlatformAnalytics();
+      sendSuccess(res, { analytics }, 'Platform analytics retrieved successfully', 200);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async getUsers(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await AdminService.getUsers(req.query as any);

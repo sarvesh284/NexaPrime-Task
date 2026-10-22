@@ -17,6 +17,13 @@ import {
   Calendar,
   BarChart3,
   Filter,
+  MessageSquare,
+  Trash2,
+  X,
+  Settings,
+  Phone,
+  Globe,
+  MapPin,
 } from 'lucide-react';
 import { api } from '../../../lib/api';
 import {
@@ -24,6 +31,7 @@ import {
   RatingItem,
   Pagination,
   OwnerAnalyticsData,
+  Store,
 } from '../../../types';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../components/Toast';
@@ -213,6 +221,134 @@ export default function OwnerDashboardPage() {
     }
   };
 
+  // Reply Modal State & Handlers (O3 / R5)
+  const [replyModalRating, setReplyModalRating] = useState<RatingItem | null>(null);
+  const [replyInputText, setReplyInputText] = useState('');
+  const [isSubmittingReply, setIsSubmittingReply] = useState(false);
+
+  const openReplyModal = (rating: RatingItem) => {
+    setReplyModalRating(rating);
+    setReplyInputText(rating.ownerReply?.text || '');
+  };
+
+  const handleSaveReply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!replyModalRating) return;
+    if (!replyInputText.trim()) {
+      toastError('Please enter a response message.');
+      return;
+    }
+
+    try {
+      setIsSubmittingReply(true);
+      const res = await api.post<{ ownerReply: any; message: string }>(
+        `/owner/ratings/${replyModalRating.id}/reply`,
+        { reply: replyInputText.trim() }
+      );
+
+      setRatings((prev) =>
+        prev.map((r) =>
+          r.id === replyModalRating.id
+            ? { ...r, ownerReply: res.data?.ownerReply || { text: replyInputText.trim(), createdAt: new Date().toISOString() } }
+            : r
+        )
+      );
+
+      success(res.data?.message || 'Reply saved and customer notified.');
+      setReplyModalRating(null);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to submit owner reply.';
+      toastError(msg);
+    } finally {
+      setIsSubmittingReply(false);
+    }
+  };
+
+  const handleDeleteReply = async () => {
+    if (!replyModalRating) return;
+    try {
+      setIsSubmittingReply(true);
+      await api.delete(`/owner/ratings/${replyModalRating.id}/reply`);
+
+      setRatings((prev) =>
+        prev.map((r) => (r.id === replyModalRating.id ? { ...r, ownerReply: undefined } : r))
+      );
+
+      success('Reply deleted successfully.');
+      setReplyModalRating(null);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to delete reply.';
+      toastError(msg);
+    } finally {
+      setIsSubmittingReply(false);
+    }
+  };
+
+  // Edit Store Profile Modal State & Handlers (O2)
+  const [editStoreModal, setEditStoreModal] = useState<Store | null>(null);
+  const [editStoreForm, setEditStoreForm] = useState({
+    name: '',
+    description: '',
+    phone: '',
+    website: '',
+    address: '',
+  });
+  const [isSubmittingStoreProfile, setIsSubmittingStoreProfile] = useState(false);
+
+  const openEditStoreModal = (store: Store) => {
+    setEditStoreModal(store);
+    setEditStoreForm({
+      name: store.name || '',
+      description: store.description || '',
+      phone: store.phone || '',
+      website: store.website || '',
+      address: store.address || '',
+    });
+  };
+
+  const handleSaveStoreProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editStoreModal) return;
+    if (!editStoreForm.name.trim() || !editStoreForm.address.trim()) {
+      toastError('Store name and address are required.');
+      return;
+    }
+
+    try {
+      setIsSubmittingStoreProfile(true);
+      const res = await api.patch<{ store: Store; message: string }>(
+        `/owner/stores/${editStoreModal.id}`,
+        editStoreForm
+      );
+
+      if (dashboard) {
+        setDashboard({
+          ...dashboard,
+          stores: dashboard.stores.map((s) =>
+            s.id === editStoreModal.id
+              ? {
+                  ...s,
+                  name: editStoreForm.name.trim(),
+                  address: editStoreForm.address.trim(),
+                  description: editStoreForm.description.trim(),
+                  phone: editStoreForm.phone.trim(),
+                  website: editStoreForm.website.trim(),
+                }
+              : s
+          ),
+        });
+      }
+
+      success(res.data?.message || 'Store profile updated successfully.');
+      setEditStoreModal(null);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to update store profile.';
+      toastError(msg);
+    } finally {
+      setIsSubmittingStoreProfile(false);
+    }
+  };
+
   // Loading state for auth
   if (authLoading) {
     return (
@@ -272,6 +408,21 @@ export default function OwnerDashboardPage() {
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              const currentStore = dashboard?.stores?.find((s) => s.id === selectedStoreId) || dashboard?.stores?.[0];
+              if (currentStore) {
+                openEditStoreModal(currentStore as any);
+              } else {
+                toastError('No owned stores found to edit.');
+              }
+            }}
+            className="py-2 px-4 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold flex items-center gap-2 transition-colors shadow-lg shadow-purple-600/20"
+          >
+            <Settings className="w-3.5 h-3.5" />
+            <span>Edit Store Profile</span>
+          </button>
+
           <button
             onClick={handleExportCsv}
             disabled={isExporting}
@@ -518,8 +669,9 @@ export default function OwnerDashboardPage() {
                   <th className="py-3 px-4 font-semibold">Store</th>
                   <th className="py-3 px-4 font-semibold">Customer</th>
                   <th className="py-3 px-4 font-semibold">Rating</th>
-                  <th className="py-3 px-4 font-semibold">Comment</th>
+                  <th className="py-3 px-4 font-semibold">Feedback & Response</th>
                   <th className="py-3 px-4 font-semibold">Date</th>
+                  <th className="py-3 px-4 font-semibold text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800/60">
@@ -538,11 +690,33 @@ export default function OwnerDashboardPage() {
                         {r.rating} ★
                       </span>
                     </td>
-                    <td className="py-3 px-4 max-w-xs text-zinc-300 truncate">
-                      {r.comment || <span className="text-zinc-600 italic">No written comment</span>}
+                    <td className="py-3 px-4 max-w-sm text-zinc-300">
+                      <p className="line-clamp-2">{r.comment || <span className="text-zinc-600 italic">No written comment</span>}</p>
+                      {r.ownerReply && (
+                        <div className="mt-1.5 p-2 rounded-lg bg-zinc-950 border border-purple-500/30 text-[11px] text-purple-300 flex items-start gap-1.5">
+                          <MessageSquare className="w-3 h-3 text-purple-400 mt-0.5 shrink-0" />
+                          <div className="truncate">
+                            <span className="font-semibold text-purple-200">Your Reply: </span>
+                            <span>{r.ownerReply.text}</span>
+                          </div>
+                        </div>
+                      )}
                     </td>
                     <td className="py-3 px-4 text-zinc-400 whitespace-nowrap">
                       {new Date(r.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="py-3 px-4 text-right whitespace-nowrap">
+                      <button
+                        onClick={() => openReplyModal(r)}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+                          r.ownerReply
+                            ? 'bg-purple-950/80 text-purple-300 border border-purple-700 hover:bg-purple-900'
+                            : 'bg-zinc-800 text-zinc-200 hover:bg-zinc-700 hover:text-white border border-zinc-700'
+                        }`}
+                      >
+                        <MessageSquare className="w-3 h-3" />
+                        <span>{r.ownerReply ? 'Edit Reply' : 'Reply'}</span>
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -582,6 +756,189 @@ export default function OwnerDashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Reply Modal (O3 / R5) */}
+      {replyModalRating && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl p-6 text-white space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-purple-400" />
+                <h3 className="text-base font-bold text-white">
+                  {replyModalRating.ownerReply ? 'Edit Review Response' : 'Reply to Customer Review'}
+                </h3>
+              </div>
+              <button
+                onClick={() => setReplyModalRating(null)}
+                className="text-zinc-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Review summary preview */}
+            <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs space-y-1">
+              <div className="flex items-center justify-between text-zinc-400">
+                <span className="font-semibold text-zinc-200">{replyModalRating.user?.name}</span>
+                <span className="text-amber-400 font-bold">{replyModalRating.rating} ★</span>
+              </div>
+              <p className="text-zinc-300 italic">
+                "{replyModalRating.comment || 'No written text provided'}"
+              </p>
+            </div>
+
+            <form onSubmit={handleSaveReply} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                  Your Response (Visible to the community)
+                </label>
+                <textarea
+                  value={replyInputText}
+                  onChange={(e) => setReplyInputText(e.target.value)}
+                  maxLength={500}
+                  rows={4}
+                  placeholder="Thank the customer for visiting, address their points professionally..."
+                  className="w-full p-3 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white focus:outline-none focus:border-purple-400 resize-none leading-relaxed"
+                />
+                <div className="flex justify-between text-[11px] text-zinc-500 mt-1">
+                  <span>Professional, courteous tone recommended</span>
+                  <span>{replyInputText.length}/500</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                {replyModalRating.ownerReply ? (
+                  <button
+                    type="button"
+                    onClick={handleDeleteReply}
+                    disabled={isSubmittingReply}
+                    className="py-2 px-3 rounded-xl bg-rose-950/60 border border-rose-800 hover:bg-rose-900 text-rose-300 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete Reply</span>
+                  </button>
+                ) : (
+                  <div />
+                )}
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setReplyModalRating(null)}
+                    className="py-2 px-4 rounded-xl border border-zinc-800 bg-zinc-950 hover:bg-zinc-800 text-zinc-300 text-xs font-semibold"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingReply}
+                    className="py-2 px-4 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-lg shadow-purple-600/20 disabled:opacity-50"
+                  >
+                    {isSubmittingReply && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    <span>Save Response</span>
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Store Profile Modal (O2) */}
+      {editStoreModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl p-6 text-white space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+              <div className="flex items-center gap-2">
+                <Building2 className="w-5 h-5 text-purple-400" />
+                <h3 className="text-base font-bold text-white">Edit Store Profile</h3>
+              </div>
+              <button
+                onClick={() => setEditStoreModal(null)}
+                className="text-zinc-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveStoreProfile} className="space-y-3.5 text-xs">
+              <div>
+                <label className="block font-semibold text-zinc-300 mb-1">Store Name</label>
+                <input
+                  type="text"
+                  value={editStoreForm.name}
+                  onChange={(e) => setEditStoreForm({ ...editStoreForm, name: e.target.value })}
+                  required
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white focus:outline-none focus:border-purple-400"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-zinc-300 mb-1">Description</label>
+                <textarea
+                  value={editStoreForm.description}
+                  onChange={(e) => setEditStoreForm({ ...editStoreForm, description: e.target.value })}
+                  rows={3}
+                  placeholder="Describe your store, specialties, and business hours..."
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white focus:outline-none focus:border-purple-400 resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-zinc-300 mb-1">Phone Number</label>
+                  <input
+                    type="text"
+                    value={editStoreForm.phone}
+                    onChange={(e) => setEditStoreForm({ ...editStoreForm, phone: e.target.value })}
+                    placeholder="(415) 555-0100"
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white focus:outline-none focus:border-purple-400"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-zinc-300 mb-1">Website URL</label>
+                  <input
+                    type="text"
+                    value={editStoreForm.website}
+                    onChange={(e) => setEditStoreForm({ ...editStoreForm, website: e.target.value })}
+                    placeholder="https://example.com"
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white focus:outline-none focus:border-purple-400"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-zinc-300 mb-1">Physical Address</label>
+                <input
+                  type="text"
+                  value={editStoreForm.address}
+                  onChange={(e) => setEditStoreForm({ ...editStoreForm, address: e.target.value })}
+                  required
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white focus:outline-none focus:border-purple-400"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setEditStoreModal(null)}
+                  className="py-2 px-4 rounded-xl border border-zinc-800 bg-zinc-950 hover:bg-zinc-800 text-zinc-300 font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingStoreProfile}
+                  className="py-2 px-5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold flex items-center gap-1.5 shadow-lg shadow-purple-600/20 disabled:opacity-50"
+                >
+                  {isSubmittingStoreProfile && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>Save Store Changes</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

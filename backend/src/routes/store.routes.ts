@@ -11,7 +11,11 @@ const router = Router();
 
 // Store discovery & metadata
 router.get('/filter-options', StoreController.getFilterOptions);
+router.get('/trending', StoreController.getTrending);
 router.get('/favorites', requireAuth, StoreController.getUserFavorites);
+router.get('/recently-viewed', requireAuth, StoreController.getRecentlyViewed);
+router.delete('/recently-viewed', requireAuth, StoreController.clearRecentlyViewed);
+router.get('/my-ratings/history', requireAuth, RatingController.getMyRatingHistory);
 
 // Store discovery & listings
 router.get('/', optionalAuth, validateQuery(storeQuerySchema), StoreController.getStores);
@@ -23,6 +27,14 @@ router.post(
   requireAuth,
   validateParams(objectIdParamSchema),
   StoreController.toggleFavorite
+);
+
+// Record store view
+router.post(
+  '/:id/view',
+  optionalAuth,
+  validateParams(objectIdParamSchema),
+  StoreController.recordView
 );
 
 // Personal rating for store

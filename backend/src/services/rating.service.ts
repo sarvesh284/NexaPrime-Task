@@ -3,6 +3,7 @@ import { RatingModel } from '../models/rating.model';
 import { StoreModel } from '../models/store.model';
 import { ReportModel, ReportReason } from '../models/report.model';
 import { sanitizeText } from '../utils/sanitize';
+import { notificationService } from './notification.service';
 
 export class RatingService {
   /**
@@ -79,6 +80,17 @@ export class RatingService {
       { _id: storeObjectId },
       { $set: { averageRating, ratingCount } }
     );
+
+    // Notify store owner about the new or updated rating (N1 / O4)
+    if (store.ownerId) {
+      await notificationService.createNotification(
+        store.ownerId,
+        'NEW_RATING',
+        'Customer Rating Received',
+        `A customer submitted a ${value}-star rating for ${store.name}.`,
+        `/owner/dashboard`
+      );
+    }
 
     return {
       rating: {
@@ -351,6 +363,52 @@ export class RatingService {
       ratingId,
       status: 'PENDING',
       message: 'Report submitted successfully. Our moderation team will review it.',
+    };
+  }
+
+  /**
+   * Get user's rating history across all stores (R4)
+   */
+  static async getMyRatingHistory(userId: string, page: number = 1, limit: number = 20) {
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+    const skip = (page - 1) * limit;
+
+    const [ratings, total] = await Promise.all([
+      RatingModel.find({ userId: userObjectId })
+        .populate('storeId', 'name address category city averageRating ratingCount coordinates')
+        .sort({ updatedAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      RatingModel.countDocuments({ userId: userObjectId }),
+    ]);
+
+    const formatted = ratings.map((r: any) => ({
+      id: r._id.toString(),
+      storeId: r.storeId?._id?.toString() || r.storeId?.toString(),
+      storeName: r.storeId?.name || 'Unknown Store',
+      storeAddress: r.storeId?.address || '',
+      storeCategory: r.storeId?.category || 'Retail',
+      storeCity: r.storeId?.city || 'General',
+      storeAverageRating: r.storeId?.averageRating || 0,
+      storeRatingCount: r.storeId?.ratingCount || 0,
+      value: r.value,
+      comment: r.comment || '',
+      status: r.status,
+      helpfulCount: r.helpfulCount || 0,
+      ownerReply: r.ownerReply || null,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+    }));
+
+    return {
+      ratings: formatted,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
     };
   }
 }

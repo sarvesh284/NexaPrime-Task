@@ -68,4 +68,16 @@ export class RatingController {
       next(error);
     }
   }
+
+  static async getMyRatingHistory(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 20;
+
+      const result = await RatingService.getMyRatingHistory(req.user!.userId, page, limit);
+      sendSuccess(res, { ratings: result.ratings }, 'Rating history retrieved successfully', 200, result.pagination);
+    } catch (error) {
+      next(error);
+    }
+  }
 }

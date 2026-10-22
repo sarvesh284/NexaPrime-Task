@@ -37,4 +37,28 @@ router.get(
   OwnerController.exportCsv
 );
 
+// Reply to a customer rating (R5 / O3)
+router.post(
+  '/ratings/:id/reply',
+  requireAuth,
+  requireRole('STORE_OWNER'),
+  OwnerController.replyToRating
+);
+
+// Delete reply to a customer rating (R5 / O3)
+router.delete(
+  '/ratings/:id/reply',
+  requireAuth,
+  requireRole('STORE_OWNER'),
+  OwnerController.deleteReply
+);
+
+// Update store profile details (O2)
+router.patch(
+  '/stores/:id',
+  requireAuth,
+  requireRole('STORE_OWNER'),
+  OwnerController.updateStoreProfile
+);
+
 export default router;

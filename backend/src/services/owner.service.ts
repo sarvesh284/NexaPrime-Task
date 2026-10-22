@@ -2,6 +2,8 @@ import mongoose from 'mongoose';
 import { StoreModel } from '../models/store.model';
 import { RatingModel } from '../models/rating.model';
 import { OwnerRatingsQueryInput, OwnerAnalyticsQueryInput } from '../validators/store.validator';
+import { notificationService } from './notification.service';
+import { sanitizeText } from '../utils/sanitize';
 
 function sanitizeCsvCell(value: any): string {
   if (value === null || value === undefined) return '""';
@@ -551,5 +553,144 @@ export class OwnerService {
     }
 
     return csvLines.join('\n');
+  }
+
+  /**
+   * Submit or update an owner reply to a customer rating
+   */
+  static async replyToRating(ownerId: string, ratingId: string, replyText: string) {
+    if (!mongoose.isValidObjectId(ratingId)) {
+      const err: any = new Error('Invalid rating ID format');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const cleanText = sanitizeText(replyText || '');
+    if (!cleanText || cleanText.length < 1 || cleanText.length > 1000) {
+      const err: any = new Error('Reply text must be between 1 and 1000 characters');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const rating = await RatingModel.findById(ratingId);
+    if (!rating) {
+      const err: any = new Error('Rating not found');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    // Verify the rating belongs to a store owned by this owner
+    const store = await StoreModel.findById(rating.storeId);
+    if (!store || !store.ownerId || store.ownerId.toString() !== ownerId) {
+      const err: any = new Error('Forbidden: You can only reply to reviews for your own stores');
+      err.statusCode = 403;
+      throw err;
+    }
+
+    rating.ownerReply = {
+      text: cleanText,
+      createdAt: rating.ownerReply?.createdAt || new Date(),
+      updatedAt: new Date(),
+      ownerId: new mongoose.Types.ObjectId(ownerId),
+    };
+
+    await rating.save();
+
+    // Trigger in-app notification to the reviewer (N1)
+    await notificationService.createNotification(
+      rating.userId,
+      'REVIEW_REPLY',
+      'Store Owner Replied to Your Review',
+      `The owner of ${store.name} replied to your review: "${cleanText.substring(0, 80)}${cleanText.length > 80 ? '...' : ''}"`,
+      `/stores/${store._id}`
+    );
+
+    return {
+      id: rating._id.toString(),
+      ownerReply: rating.ownerReply,
+      message: 'Reply posted successfully',
+    };
+  }
+
+  /**
+   * Delete an owner reply to a customer rating
+   */
+  static async deleteReply(ownerId: string, ratingId: string) {
+    if (!mongoose.isValidObjectId(ratingId)) {
+      const err: any = new Error('Invalid rating ID format');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const rating = await RatingModel.findById(ratingId);
+    if (!rating) {
+      const err: any = new Error('Rating not found');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    const store = await StoreModel.findById(rating.storeId);
+    if (!store || !store.ownerId || store.ownerId.toString() !== ownerId) {
+      const err: any = new Error('Forbidden: You can only delete replies for your own stores');
+      err.statusCode = 403;
+      throw err;
+    }
+
+    await RatingModel.updateOne({ _id: ratingId }, { $unset: { ownerReply: 1 } });
+
+    return { message: 'Reply deleted successfully' };
+  }
+
+  /**
+   * Update store profile details by owner (O2)
+   */
+  static async updateStoreProfile(
+    ownerId: string,
+    storeId: string,
+    updateData: {
+      description?: string;
+      phone?: string;
+      website?: string;
+      address?: string;
+      category?: string;
+    }
+  ) {
+    if (!mongoose.isValidObjectId(storeId)) {
+      const err: any = new Error('Invalid store ID format');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const store = await StoreModel.findById(storeId);
+    if (!store || !store.ownerId || store.ownerId.toString() !== ownerId) {
+      const err: any = new Error('Forbidden: You can only edit your own store profile');
+      err.statusCode = 403;
+      throw err;
+    }
+
+    if (updateData.description !== undefined) store.description = sanitizeText(updateData.description);
+    if (updateData.phone !== undefined) store.phone = sanitizeText(updateData.phone);
+    if (updateData.website !== undefined) store.website = sanitizeText(updateData.website);
+    if (updateData.address !== undefined && updateData.address.trim()) store.address = updateData.address.trim();
+    if (updateData.category !== undefined && updateData.category.trim()) store.category = updateData.category.trim();
+
+    await store.save();
+
+    return {
+      store: {
+        id: store._id.toString(),
+        name: store.name,
+        email: store.email,
+        address: store.address,
+        category: store.category,
+        city: store.city,
+        description: store.description,
+        phone: store.phone,
+        website: store.website,
+        coordinates: store.coordinates,
+        isActive: store.isActive,
+      },
+      message: 'Store profile updated successfully',
+    };
   }
 }

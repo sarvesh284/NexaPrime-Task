@@ -1,6 +1,18 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import { UserRole } from '../types';
 
+export interface IRecentlyViewedStore {
+  storeId: mongoose.Types.ObjectId;
+  viewedAt: Date;
+}
+
+export interface ILoginHistoryEntry {
+  ip: string;
+  userAgent: string;
+  timestamp: Date;
+  status: 'SUCCESS' | 'FAILED';
+}
+
 export interface IUser extends Document {
   name: string;
   email: string;
@@ -15,6 +27,8 @@ export interface IUser extends Document {
   passwordResetExpiresAt?: Date;
   tokenVersion: number;
   favorites: mongoose.Types.ObjectId[];
+  recentlyViewed: IRecentlyViewedStore[];
+  loginHistory: ILoginHistoryEntry[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -87,6 +101,27 @@ const userSchema = new Schema<IUser>(
       {
         type: Schema.Types.ObjectId,
         ref: 'Store',
+      },
+    ],
+    recentlyViewed: [
+      {
+        storeId: {
+          type: Schema.Types.ObjectId,
+          ref: 'Store',
+          required: true,
+        },
+        viewedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+    loginHistory: [
+      {
+        ip: { type: String, default: '127.0.0.1' },
+        userAgent: { type: String, default: 'Unknown' },
+        timestamp: { type: Date, default: Date.now },
+        status: { type: String, enum: ['SUCCESS', 'FAILED'], default: 'SUCCESS' },
       },
     ],
   },

@@ -9,6 +9,7 @@ import { Footer } from '../components/Footer';
 export const metadata: Metadata = {
   title: 'NexaPrime Store Rating — Discover & Review Local Stores',
   description: 'A modern, secure store rating platform where users discover businesses, submit ratings, and store owners analyze performance metrics.',
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({

@@ -18,6 +18,8 @@ router.post('/register', authRateLimiter, validateBody(registerSchema), AuthCont
 router.post('/login', authRateLimiter, validateBody(loginSchema), AuthController.login);
 router.post('/logout', AuthController.logout);
 router.get('/me', requireAuth, AuthController.getMe);
+router.get('/login-history', requireAuth, AuthController.getLoginHistory);
+router.post('/revoke-sessions', requireAuth, AuthController.revokeSessions);
 
 // Feature C: Password reset & Email verification
 router.post(

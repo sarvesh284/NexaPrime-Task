@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Star, ShieldCheck, ArrowRight, TrendingUp, CheckCircle, Sparkles } from 'lucide-react';
+import { Star, ShieldCheck, ArrowRight, TrendingUp, CheckCircle, Sparkles, Clock, Trash2 } from 'lucide-react';
 import { api } from '../lib/api';
 import { Store, StoreStats } from '../types';
 import { StoreCard } from '../components/StoreCard';
@@ -13,6 +13,7 @@ export default function HomePage() {
   const { user } = useAuth();
   const [featuredStores, setFeaturedStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [recentlyViewed, setRecentlyViewed] = useState<Store[]>([]);
   const [selectedStoreForRating, setSelectedStoreForRating] = useState<Store | null>(null);
 
   useEffect(() => {
@@ -32,6 +33,27 @@ export default function HomePage() {
     };
     fetchFeatured();
   }, []);
+
+  // Fetch recently viewed stores (N5)
+  useEffect(() => {
+    if (user) {
+      api
+        .get<{ stores: Store[] }>('/stores/recently-viewed')
+        .then((res) => {
+          if (res.data?.stores) {
+            setRecentlyViewed(res.data.stores);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [user]);
+
+  const handleClearRecentlyViewed = async () => {
+    try {
+      await api.delete('/stores/recently-viewed');
+      setRecentlyViewed([]);
+    } catch {}
+  };
 
   const handleRatingSubmitted = (storeId: string, rating: number, storeStats?: StoreStats) => {
     setFeaturedStores((prev) =>
@@ -220,6 +242,48 @@ export default function HomePage() {
           )}
         </div>
       </section>
+
+      {/* Feature N5: Recently Viewed Stores */}
+      {user && recentlyViewed.length > 0 && (
+        <section className="py-14 bg-zinc-950 border-t border-zinc-800/80">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-amber-400" />
+                <h3 className="text-xl font-bold text-white">Recently Viewed Stores</h3>
+              </div>
+              <button
+                onClick={handleClearRecentlyViewed}
+                className="text-xs text-zinc-500 hover:text-rose-400 flex items-center gap-1 transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Clear History</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {recentlyViewed.map((store) => (
+                <Link
+                  key={store.id}
+                  href={`/stores/${store.id}`}
+                  className="p-4 rounded-2xl bg-zinc-900/80 border border-zinc-800 hover:border-zinc-700 transition-all block group"
+                >
+                  <p className="font-bold text-white group-hover:text-amber-400 transition-colors text-sm truncate">
+                    {store.name}
+                  </p>
+                  <p className="text-[11px] text-zinc-400 truncate mt-0.5">{store.city || store.address}</p>
+                  <div className="flex items-center justify-between mt-3 pt-2 border-t border-zinc-800/60 text-xs">
+                    <span className="text-zinc-500 text-[10px]">{store.category || 'Store'}</span>
+                    <span className="font-bold text-amber-400 text-xs">
+                      {store.averageRating > 0 ? `${store.averageRating.toFixed(1)} ★` : 'New'}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Rating Modal */}
       <RatingModal

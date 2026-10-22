@@ -280,7 +280,7 @@ cd backend
 npm test
 ```
 
-### Test Coverage (52 Tests Across 9 Suites):
+### Test Coverage (62 Tests Across 10 Suites):
 1. **`auth.test.ts` (11 tests):** Registration, password complexity, duplicate rejection, role tampering immunity, login, wrong password rejection, inactive account rejection, session retrieval (`/auth/me`), and logout.
 2. **`store.test.ts` (8 tests):** Active store filtering, inactive store exclusion, zero-rating states, personal rating attachment, search by name, dynamic sorting, single store lookup, 404/400 validation.
 3. **`rating.test.ts` (6 tests):** 1–5 integer validation, fractional/zero/string/overflow rejection, initial rating creation, concurrency-safe upsert without duplicate documents, owner rating denial (`403 Forbidden`).
@@ -290,6 +290,7 @@ npm test
 7. **`email.test.ts` (3 tests):** Anti-enumeration generic forgot-password response, password reset with token validation and session revocation (`tokenVersion`), email verification with token validation and rejection of invalid/expired tokens.
 8. **`discovery.test.ts` (8 tests):** Multi-filter discovery (category, city, min-rating), Bayesian adjusted rating calculation and sorting, store favorites toggle and retrieval, owner daily trend analytics, spreadsheet formula-injection-safe CSV export.
 9. **`e2e.workflow.test.ts` (1 integration test):** Full-stack end-to-end integration test spanning registration, store creation, rating with comment, helpful voting, review reporting, admin moderation, and aggregate recalculation.
+10. **`extended.features.test.ts` (10 tests):** Owner replies to reviews (R5 / O3), unauthorized owner reply rejection, reply deletion ($unset), store profile management (O2), user rating history (`/my-ratings/history`), recently viewed tracking (N5), trending stores ranking (N4), notification center reading/marking all read (N1), login history tracking (SEC4), and platform-wide growth analytics (A3).
 
 ---
 
@@ -299,9 +300,11 @@ Base URL: `/api/v1`
 
 ### Authentication & Account Recovery
 - `POST /auth/register` — Register a new normal user account.
-- `POST /auth/login` — Sign in and receive HttpOnly session cookie.
+- `POST /auth/login` — Sign in, record login history, and receive HttpOnly session cookie.
 - `POST /auth/logout` — Invalidate session and clear auth cookie.
 - `GET /auth/me` — Retrieve active authenticated session.
+- `GET /auth/login-history` — Retrieve recent device/IP login sessions (SEC4).
+- `POST /auth/revoke-sessions` — Invalidate all active user sessions by incrementing `tokenVersion` (SEC3 / SEC4).
 - `POST /auth/verify-email` — Verify account using token (`{ "token": "..." }`).
 - `POST /auth/resend-verification` — Resend verification email (rate-limited).
 - `POST /auth/forgot-password` — Request password reset email (anti-enumeration).
@@ -309,27 +312,41 @@ Base URL: `/api/v1`
 
 ### Stores, Ratings & Reviews
 - `GET /stores` — Query stores with `search`, `category`, `city`, `minRating`, `sort`, `order`, `page`, `limit`.
-- `GET /stores/:id` — Retrieve store details and rating statistics.
-- `GET /stores/:id/reviews` — Paginated reviews with comments, helpful votes, and author names.
+- `GET /stores/trending` — Top 6 trending stores ranked by recent community reviews (N4).
+- `GET /stores/recently-viewed` — Authenticated user's recently viewed stores (N5).
+- `DELETE /stores/recently-viewed` — Clear user's recently viewed store history.
+- `GET /stores/my-ratings/history` — Paginated history of authenticated user's submitted reviews with store metadata (R4).
+- `GET /stores/:id` — Retrieve store details with GPS coordinates, phone, website, description, and statistics.
+- `POST /stores/:id/view` — Record store page view for authenticated user.
+- `GET /stores/:id/reviews` — Paginated reviews with comments, helpful votes, owner replies, and author names.
 - `GET /stores/:id/my-rating` — Retrieve user's personal rating and comment.
-- `PUT /stores/:id/rating` — Submit or update rating (`{ "rating": 5, "comment": "..." }`).
+- `PUT /stores/:id/rating` — Submit or update rating with optional 500-char comment (`{ "rating": 5, "comment": "..." }`).
 - `POST /stores/:id/favorite` — Toggle store favorite status.
 - `GET /stores/favorites/my-favorites` — Retrieve authenticated user's favorite stores.
 - `POST /ratings/:ratingId/helpful` — Toggle helpful vote on a review.
-- `POST /ratings/:ratingId/report` — Report a review (`{ "reason": "SPAM", "details": "..." }`).
+- `POST /ratings/:ratingId/report` — Report an inappropriate review (`{ "reason": "SPAM", "details": "..." }`).
+
+### In-App Notification Center
+- `GET /notifications` — Paginated in-app notifications with unread count.
+- `PATCH /notifications/:id/read` — Mark an individual notification as read.
+- `POST /notifications/mark-all-read` — Mark all unread notifications as read.
 
 ### Store Owner Portal
-- `GET /owner/dashboard` — Summary KPIs and 1–5 star distribution.
-- `GET /owner/analytics` — Advanced analytics with daily trends and date range filtering (`7d`, `30d`, `90d`, `all`).
-- `GET /owner/ratings` — Paginated customer rating logs with customer name and email.
+- `GET /owner/dashboard` — Summary KPIs, owned stores list, and 1–5 star distribution.
+- `GET /owner/analytics` — Advanced analytics with daily trends and date range filtering (`7d`, `30d`, `90d`, custom).
+- `GET /owner/ratings` — Paginated customer rating logs with customer name, email, and owner reply status.
+- `POST /owner/ratings/:id/reply` — Submit or update owner reply to customer review (O3 / R5).
+- `DELETE /owner/ratings/:id/reply` — Delete owner reply from a customer review.
+- `PATCH /owner/stores/:id` — Update store profile details (name, description, phone, website, address) (O2).
 - `GET /owner/export` — Download spreadsheet formula-injection-safe CSV export.
 
 ### Platform Administration (Admin Only)
 - `GET /admin/kpis` — Platform-wide statistics (users, owners, stores, ratings, average).
+- `GET /admin/analytics` — 30-day user growth, store creation trends, rating volume, leaderboards, and distribution (A3).
 - `GET /admin/users` — Paginated user directory with search, role, and status filters.
 - `PATCH /admin/users/:userId/status` — Toggle user active/deactivated status.
 - `GET /admin/stores` — View all stores with rating metrics and owner details.
-- `POST /admin/stores` — Create a new store.
+- `POST /admin/stores` — Create a new store with coordinates, category, and city.
 - `PATCH /admin/stores/:storeId` — Update store details or toggle active status.
 - `PATCH /admin/stores/:storeId/assign` — Assign store ownership to a verified store owner.
 - `GET /admin/reports` — Review reported reviews moderation queue.
@@ -397,5 +414,46 @@ Base URL: `/api/v1`
 
 ---
 
+## 💾 Database Backup & Disaster Recovery (T7)
+
+### 1. MongoDB Database Backup (`mongodump`)
+For self-hosted or dedicated staging MongoDB instances:
+```bash
+# Automated archive dump with gzip compression
+mongodump --uri="mongodb://127.0.0.1:27017/store_rating_platform" --archive="backup-$(date +%Y%m%d_%H%M%S).gz" --gzip
+```
+
+For MongoDB Atlas deployments:
+- **Continuous Cloud Backups:** Enable Atlas automated Point-In-Time Restore (PITR) snapshots configured at 6-hour intervals with 7-day retention.
+- **Snapshot Verification:** Periodically trigger an on-demand snapshot in the Atlas console to confirm consistency before large migrations.
+
+### 2. Database Restoration (`mongorestore`)
+```bash
+# Verify archive integrity and dry-run restore
+mongorestore --uri="mongodb://127.0.0.1:27017/store_rating_platform_restore" --archive="backup-20261022.gz" --gzip --drop
+
+# Verify restored indexes:
+# - Rating: { user: 1, store: 1 } (Unique)
+# - Store:  { name: 1, address: 1 } (Unique)
+# - Notification: { userId: 1, isRead: 1, createdAt: -1 }
+```
+
+### 3. Recovery Objectives
+- **RPO (Recovery Point Objective):** <= 6 hours (backed by Atlas PITR or automated daily dumps).
+- **RTO (Recovery Time Objective):** <= 30 minutes to restore dump archive and redeploy container.
+
+---
+
+## 📱 Progressive Web App (PWA) & Accessibility (T5 & T6)
+- **Web App Manifest:** Available at `/manifest.json`, providing standalone display mode, amber branding (`#f59e0b`), and dark background (`#09090b`).
+- **WCAG 2.1 AA Compliance:**
+  - High-contrast typography across dark-mode Tailwind color tokens.
+  - Visible focus rings (`focus:outline-none focus:border-amber-400`).
+  - Screen-reader aria attributes and semantic table headers (`<th>`, `<td>`).
+  - Keyboard-navigable dialogs, dropdowns, and rating inputs.
+
+---
+
 ## 📄 License
 This project is developed for the NexaPrime Full-Stack Developer Internship Challenge.
+

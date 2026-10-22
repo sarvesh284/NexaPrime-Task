@@ -13,6 +13,13 @@ export interface AuthenticatedRequest extends Request {
   user?: IUserPayload;
 }
 
+export interface Pagination {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export interface ApiResponse<T = any> {
   success: boolean;
   message?: string;
@@ -21,10 +28,5 @@ export interface ApiResponse<T = any> {
     code: string;
     details?: any;
   };
-  pagination?: {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
+  pagination?: Pagination;
 }

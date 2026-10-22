@@ -18,6 +18,9 @@ import {
   User as UserIcon,
   X,
   ShieldAlert,
+  Phone,
+  Globe,
+  Store as StoreIcon,
 } from 'lucide-react';
 import { api, ApiError } from '../../../lib/api';
 import { Store, StoreStats, Review, RatingDistribution } from '../../../types';
@@ -115,6 +118,13 @@ function StoreDetailContent() {
           }
         })
         .catch(() => {});
+    }
+  }, [user, storeId]);
+
+  // Track store view for logged-in users (N5: Recently Viewed Stores)
+  useEffect(() => {
+    if (user && storeId) {
+      api.post(`/stores/${storeId}/view`).catch(() => {});
     }
   }, [user, storeId]);
 
@@ -284,9 +294,38 @@ function StoreDetailContent() {
               </button>
             </h1>
 
-            <div className="flex items-center gap-2 text-xs text-zinc-400">
-              <MapPin className="w-4 h-4 text-zinc-500 shrink-0" />
-              <span>{store.address}</span>
+            {store.description && (
+              <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed max-w-2xl">
+                {store.description}
+              </p>
+            )}
+
+            <div className="flex flex-wrap items-center gap-4 text-xs text-zinc-400 pt-1">
+              <div className="flex items-center gap-1.5">
+                <MapPin className="w-4 h-4 text-zinc-500 shrink-0" />
+                <span>{store.address}</span>
+              </div>
+              {store.phone && (
+                <div className="flex items-center gap-1.5">
+                  <Phone className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+                  <a href={`tel:${store.phone}`} className="hover:text-amber-400 transition-colors">
+                    {store.phone}
+                  </a>
+                </div>
+              )}
+              {store.website && (
+                <div className="flex items-center gap-1.5">
+                  <Globe className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+                  <a
+                    href={store.website.startsWith('http') ? store.website : `https://${store.website}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-amber-400 underline transition-colors"
+                  >
+                    Visit Website
+                  </a>
+                </div>
+              )}
             </div>
           </div>
 
@@ -441,6 +480,23 @@ function StoreDetailContent() {
                   <p className="text-xs text-zinc-300 leading-relaxed pl-11">
                     {rev.comment}
                   </p>
+                )}
+
+                {rev.ownerReply && (
+                  <div className="ml-11 p-3.5 rounded-xl bg-zinc-900/90 border border-amber-500/25 space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-amber-400 flex items-center gap-1.5">
+                        <StoreIcon className="w-3.5 h-3.5" />
+                        Response from Owner
+                      </span>
+                      <span className="text-[10px] text-zinc-500">
+                        {new Date(rev.ownerReply.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-300 leading-relaxed">
+                      {rev.ownerReply.text}
+                    </p>
+                  </div>
                 )}
 
                 <div className="flex items-center justify-between pt-2 border-t border-zinc-900 pl-11">

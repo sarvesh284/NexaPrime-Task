@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { StoreModel } from '../models/store.model';
 import { UserModel } from '../models/user.model';
+import { RatingModel } from '../models/rating.model';
 import { StoreQueryInput } from '../validators/store.validator';
 import { env } from '../config/env';
 
@@ -399,5 +400,162 @@ export class StoreService {
       categories: categories.filter(Boolean),
       cities: cities.filter(Boolean),
     };
+  }
+
+  /**
+   * Get trending stores based on recent rating volume and score quality (N4)
+   */
+  static async getTrendingStores(limit: number = 6) {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const trendingAgg = await RatingModel.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: thirtyDaysAgo },
+          status: 'VISIBLE',
+        },
+      },
+      {
+        $group: {
+          _id: '$storeId',
+          recentRatingsCount: { $sum: 1 },
+          recentAverageRating: { $avg: '$value' },
+        },
+      },
+      {
+        $addFields: {
+          trendingScore: {
+            $add: [
+              { $multiply: ['$recentRatingsCount', 0.6] },
+              { $multiply: ['$recentAverageRating', 0.8] },
+            ],
+          },
+        },
+      },
+      { $sort: { trendingScore: -1 } },
+      { $limit: limit },
+      {
+        $lookup: {
+          from: 'stores',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'store',
+        },
+      },
+      { $unwind: '$store' },
+      { $match: { 'store.isActive': true } },
+    ]);
+
+    if (trendingAgg.length === 0) {
+      // Fallback to top rated active stores
+      const topStores = await StoreModel.find({ isActive: true })
+        .sort({ averageRating: -1, ratingCount: -1 })
+        .limit(limit)
+        .lean();
+
+      return topStores.map((s: any) => ({
+        id: s._id.toString(),
+        name: s.name,
+        email: s.email,
+        address: s.address,
+        category: s.category || 'Retail',
+        city: s.city || 'General',
+        averageRating: s.averageRating || 0,
+        ratingCount: s.ratingCount || 0,
+        coordinates: s.coordinates,
+        recentRatingsCount: s.ratingCount || 0,
+      }));
+    }
+
+    return trendingAgg.map((item: any) => ({
+      id: item.store._id.toString(),
+      name: item.store.name,
+      email: item.store.email,
+      address: item.store.address,
+      category: item.store.category || 'Retail',
+      city: item.store.city || 'General',
+      averageRating: item.store.averageRating || 0,
+      ratingCount: item.store.ratingCount || 0,
+      coordinates: item.store.coordinates,
+      recentRatingsCount: item.recentRatingsCount,
+    }));
+  }
+
+  /**
+   * Record a store in user's recently viewed list (N5)
+   */
+  static async recordRecentlyViewed(userId: string, storeId: string) {
+    if (!mongoose.isValidObjectId(userId) || !mongoose.isValidObjectId(storeId)) return;
+
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+    const storeObjectId = new mongoose.Types.ObjectId(storeId);
+
+    await UserModel.updateOne(
+      { _id: userObjectId },
+      {
+        $pull: { recentlyViewed: { storeId: storeObjectId } },
+      }
+    );
+
+    await UserModel.updateOne(
+      { _id: userObjectId },
+      {
+        $push: {
+          recentlyViewed: {
+            $each: [{ storeId: storeObjectId, viewedAt: new Date() }],
+            $slice: -10,
+          },
+        },
+      }
+    );
+  }
+
+  /**
+   * Get user's recently viewed stores (N5)
+   */
+  static async getRecentlyViewed(userId: string) {
+    const user = await UserModel.findById(userId)
+      .populate({
+        path: 'recentlyViewed.storeId',
+        match: { isActive: true },
+      })
+      .lean();
+
+    if (!user || !user.recentlyViewed) {
+      return { stores: [] };
+    }
+
+    const stores = user.recentlyViewed
+      .filter((item: any) => item.storeId)
+      .map((item: any) => {
+        const s = item.storeId;
+        return {
+          id: s._id.toString(),
+          name: s.name,
+          email: s.email,
+          address: s.address,
+          category: s.category || 'Retail',
+          city: s.city || 'General',
+          averageRating: s.averageRating || 0,
+          ratingCount: s.ratingCount || 0,
+          coordinates: s.coordinates,
+          viewedAt: item.viewedAt,
+        };
+      })
+      .reverse();
+
+    return { stores };
+  }
+
+  /**
+   * Clear user's recently viewed stores history (N5)
+   */
+  static async clearRecentlyViewed(userId: string) {
+    await UserModel.updateOne(
+      { _id: new mongoose.Types.ObjectId(userId) },
+      { $set: { recentlyViewed: [] } }
+    );
+    return { message: 'Recently viewed history cleared' };
   }
 }

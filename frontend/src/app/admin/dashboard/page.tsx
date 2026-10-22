@@ -13,15 +13,22 @@ import {
   Building,
   ArrowRight,
   Loader2,
+  TrendingUp,
+  BarChart3,
+  Award,
+  ExternalLink,
+  Activity,
 } from 'lucide-react';
 import { api } from '../../../lib/api';
-import { AdminKpis } from '../../../types';
+import { AdminKpis, AdminPlatformAnalytics } from '../../../types';
 import { useAuth } from '../../../context/AuthContext';
 
 export default function AdminDashboardPage() {
   const { user, isLoading: authLoading } = useAuth();
   const [kpis, setKpis] = useState<AdminKpis | null>(null);
+  const [analytics, setAnalytics] = useState<AdminPlatformAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [analyticsLoading, setAnalyticsLoading] = useState(true);
 
   useEffect(() => {
     if (authLoading || user?.role !== 'ADMIN') return;
@@ -35,6 +42,16 @@ export default function AdminDashboardPage() {
       })
       .catch((err) => console.error('Failed to load KPIs:', err))
       .finally(() => setLoading(false));
+
+    api
+      .get<{ analytics: AdminPlatformAnalytics }>('/admin/analytics')
+      .then((res) => {
+        if (res.data?.analytics) {
+          setAnalytics(res.data.analytics);
+        }
+      })
+      .catch((err) => console.error('Failed to load platform analytics:', err))
+      .finally(() => setAnalyticsLoading(false));
   }, [authLoading, user]);
 
   if (authLoading) {
@@ -233,6 +250,205 @@ export default function AdminDashboardPage() {
             <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
           </div>
         </Link>
+      </div>
+
+      {/* Feature A3: Platform Analytics & Growth Intelligence */}
+      <div className="space-y-6 pt-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-zinc-800 gap-2">
+          <div>
+            <h2 className="text-xl font-black text-white flex items-center gap-2">
+              <Activity className="w-5 h-5 text-amber-400" />
+              <span>Platform Growth & Analytics</span>
+            </h2>
+            <p className="text-xs text-zinc-400 mt-0.5">
+              30-day velocity metrics, rating volume distributions, and store quality leaderboards
+            </p>
+          </div>
+
+          {analytics?.accountHealth && (
+            <div className="flex items-center gap-2 text-xs flex-wrap">
+              <span className="px-2.5 py-1 rounded-lg bg-emerald-950/60 border border-emerald-800 text-emerald-300 font-medium">
+                Active Users: {analytics.accountHealth.activeUsers}
+              </span>
+              <span className="px-2.5 py-1 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-400 font-medium">
+                Inactive: {analytics.accountHealth.inactiveUsers}
+              </span>
+              <span className="px-2.5 py-1 rounded-lg bg-purple-950/60 border border-purple-800 text-purple-300 font-medium">
+                Active Stores: {analytics.accountHealth.activeStores}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {analyticsLoading ? (
+          <div className="py-16 flex justify-center">
+            <Loader2 className="w-7 h-7 text-amber-400 animate-spin" />
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* Charts Row: Rating Volume Trend & Rating Distribution */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* Rating Trends Chart */}
+              <div className="lg:col-span-8 p-6 rounded-2xl bg-zinc-900 border border-zinc-800 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-amber-400" />
+                    <span>30-Day Platform Rating Activity</span>
+                  </h3>
+                  <span className="text-[11px] text-zinc-500 font-medium">Daily Velocity</span>
+                </div>
+
+                {analytics?.ratingTrends && analytics.ratingTrends.length > 0 ? (
+                  <div className="h-44 flex items-end gap-2 pt-6 pb-2 border-b border-zinc-800 overflow-x-auto">
+                    {analytics.ratingTrends.map((t) => {
+                      const maxCount = Math.max(...analytics.ratingTrends.map((x) => x.count), 1);
+                      const heightPercent = Math.max(16, Math.round((t.count / maxCount) * 100));
+                      return (
+                        <div key={t.date} className="flex-1 flex flex-col items-center gap-1 min-w-[32px]">
+                          <span className="text-[10px] text-zinc-400 font-semibold">{t.count}</span>
+                          <div
+                            className="w-full rounded-t-lg bg-gradient-to-t from-amber-500 to-amber-300 transition-all hover:brightness-110"
+                            style={{ height: `${heightPercent}%` }}
+                            title={`${t.date}: ${t.count} ratings (avg: ${t.averageRating}★)`}
+                          />
+                          <span className="text-[9px] text-zinc-500 truncate w-full text-center">
+                            {t.date.slice(5)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="h-44 flex items-center justify-center text-zinc-500 text-xs">
+                    No rating activity in the last 30 days
+                  </div>
+                )}
+              </div>
+
+              {/* Distribution Breakdown */}
+              <div className="lg:col-span-4 p-6 rounded-2xl bg-zinc-900 border border-zinc-800 space-y-4">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Star className="w-4 h-4 text-amber-400" />
+                  <span>Rating Breakdown</span>
+                </h3>
+
+                <div className="space-y-3">
+                  {[5, 4, 3, 2, 1].map((star) => {
+                    const count = analytics?.distribution?.[star] || 0;
+                    const total = analytics?.totalRatings || 1;
+                    const pct = Math.round((count / total) * 100);
+                    return (
+                      <div key={star} className="flex items-center gap-2.5 text-xs">
+                        <div className="flex items-center gap-1 w-12 text-zinc-300 font-semibold">
+                          <span>{star}</span>
+                          <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                        </div>
+                        <div className="flex-1 h-2 rounded-full bg-zinc-950 border border-zinc-800 overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <span className="w-12 text-right text-zinc-400 text-[11px] font-mono">
+                          {count} ({pct}%)
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Leaderboards Grid: Most Rated & Highest Rated */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Most Rated Stores */}
+              <div className="p-6 rounded-2xl bg-zinc-900 border border-zinc-800 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-emerald-400" />
+                    <span>Most-Rated Stores (Volume Leaders)</span>
+                  </h3>
+                  <span className="text-[11px] text-zinc-500">Top 5</span>
+                </div>
+
+                {analytics?.mostRatedStores && analytics.mostRatedStores.length > 0 ? (
+                  <div className="divide-y divide-zinc-800/80">
+                    {analytics.mostRatedStores.map((s, idx) => (
+                      <div key={s.id} className="py-3 flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-3">
+                          <span className="w-6 h-6 rounded-full bg-zinc-950 border border-zinc-800 flex items-center justify-center font-bold text-zinc-400 text-[11px]">
+                            {idx + 1}
+                          </span>
+                          <div>
+                            <Link
+                              href={`/stores/${s.id}`}
+                              className="font-bold text-white hover:text-amber-400 transition-colors flex items-center gap-1"
+                            >
+                              <span>{s.name}</span>
+                              <ExternalLink className="w-3 h-3 text-zinc-500" />
+                            </Link>
+                            <p className="text-[10px] text-zinc-500">{s.city} • {s.category}</p>
+                          </div>
+                        </div>
+
+                        <div className="text-right">
+                          <p className="font-bold text-amber-400">{s.averageRating.toFixed(1)} ★</p>
+                          <p className="text-[10px] text-zinc-500">{s.ratingCount} reviews</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-zinc-500 py-6 text-center">No stores rated yet</p>
+                )}
+              </div>
+
+              {/* Highest Rated Stores */}
+              <div className="p-6 rounded-2xl bg-zinc-900 border border-zinc-800 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <Award className="w-4 h-4 text-amber-400" />
+                    <span>Highest-Rated Stores (Min. 3 Reviews)</span>
+                  </h3>
+                  <span className="text-[11px] text-zinc-500">Top 5</span>
+                </div>
+
+                {analytics?.highestRatedStores && analytics.highestRatedStores.length > 0 ? (
+                  <div className="divide-y divide-zinc-800/80">
+                    {analytics.highestRatedStores.map((s, idx) => (
+                      <div key={s.id} className="py-3 flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-3">
+                          <span className="w-6 h-6 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center font-bold text-amber-400 text-[11px]">
+                            {idx + 1}
+                          </span>
+                          <div>
+                            <Link
+                              href={`/stores/${s.id}`}
+                              className="font-bold text-white hover:text-amber-400 transition-colors flex items-center gap-1"
+                            >
+                              <span>{s.name}</span>
+                              <ExternalLink className="w-3 h-3 text-zinc-500" />
+                            </Link>
+                            <p className="text-[10px] text-zinc-500">{s.city} • {s.category}</p>
+                          </div>
+                        </div>
+
+                        <div className="text-right">
+                          <p className="font-bold text-amber-400">{s.averageRating.toFixed(1)} ★</p>
+                          <p className="text-[10px] text-zinc-500">{s.ratingCount} reviews</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-zinc-500 py-6 text-center">
+                    No stores meet the 3-review threshold yet
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

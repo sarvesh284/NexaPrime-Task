@@ -13,9 +13,12 @@ import {
   ExternalLink,
   ShieldAlert,
   Heart,
+  Star,
+  Settings,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from './Toast';
+import { NotificationCenter } from './NotificationCenter';
 
 export const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
@@ -76,6 +79,18 @@ export const Navbar: React.FC = () => {
             </Link>
           )}
 
+          {user && (
+            <Link
+              href="/my-ratings"
+              className={`flex items-center gap-1.5 text-sm font-medium transition-colors ${
+                isActive('/my-ratings') ? 'text-amber-400 font-semibold' : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              <Star className="w-4 h-4 text-amber-400" />
+              <span>My Reviews</span>
+            </Link>
+          )}
+
           {user?.role === 'STORE_OWNER' && (
             <Link
               href="/owner/dashboard"
@@ -119,6 +134,7 @@ export const Navbar: React.FC = () => {
         <div className="hidden md:flex items-center gap-3">
           {user ? (
             <div className="flex items-center gap-3">
+              <NotificationCenter />
               <div className="flex items-center gap-2 pl-3 border-l border-zinc-800">
                 <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-300">
                   <UserIcon className="w-4 h-4" />
@@ -140,6 +156,14 @@ export const Navbar: React.FC = () => {
                   </span>
                 </div>
               </div>
+
+              <Link
+                href="/settings"
+                className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
+                title="Account Security & Settings"
+              >
+                <Settings className="w-4 h-4" />
+              </Link>
 
               <button
                 onClick={handleLogout}
@@ -204,6 +228,15 @@ export const Navbar: React.FC = () => {
               My Favorites
             </Link>
           )}
+          {user && (
+            <Link
+              href="/my-ratings"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block text-sm font-medium text-amber-400"
+            >
+              My Reviews
+            </Link>
+          )}
           {user?.role === 'STORE_OWNER' && (
             <Link
               href="/owner/dashboard"
@@ -224,21 +257,32 @@ export const Navbar: React.FC = () => {
           )}
           <div className="pt-3 border-t border-zinc-800">
             {user ? (
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-semibold text-white">{user.name}</p>
-                  <p className="text-[10px] text-zinc-400">{user.email}</p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-white">{user.name}</p>
+                    <p className="text-[10px] text-zinc-400">{user.email}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="text-xs font-semibold text-rose-400 hover:text-rose-300 flex items-center gap-1"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>Log Out</span>
+                  </button>
                 </div>
-                <button
-                  onClick={() => {
-                    handleLogout();
-                    setMobileMenuOpen(false);
-                  }}
-                  className="text-xs font-semibold text-rose-400 hover:text-rose-300 flex items-center gap-1"
+
+                <Link
+                  href="/settings"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white pt-1"
                 >
-                  <LogOut className="w-3.5 h-3.5" />
-                  <span>Log Out</span>
-                </button>
+                  <Settings className="w-3.5 h-3.5" />
+                  <span>Account & Security Settings</span>
+                </Link>
               </div>
             ) : (
               <div className="flex flex-col gap-2">

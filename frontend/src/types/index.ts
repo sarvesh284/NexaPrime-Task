@@ -27,6 +27,18 @@ export interface Store {
   bayesianRating?: number;
   myRating?: number | null;
   isFavorite?: boolean;
+  description?: string;
+  phone?: string;
+  website?: string;
+  coordinates?: { lat: number; lng: number };
+  recentRatingsCount?: number;
+}
+
+export interface OwnerReply {
+  text: string;
+  createdAt: string;
+  updatedAt: string;
+  ownerId?: string;
 }
 
 export interface Review {
@@ -37,6 +49,7 @@ export interface Review {
   updatedAt: string;
   helpfulCount: number;
   hasVotedHelpful?: boolean;
+  ownerReply?: OwnerReply;
   user: {
     id: string;
     name: string;
@@ -55,6 +68,7 @@ export interface RatingItem {
   rating: number;
   comment?: string;
   helpfulCount?: number;
+  ownerReply?: OwnerReply;
   createdAt: string;
   updatedAt: string;
   user: {
@@ -66,6 +80,71 @@ export interface RatingItem {
     id: string;
     name: string;
   };
+}
+
+export interface NotificationItem {
+  id: string;
+  type: 'REVIEW_REPLY' | 'NEW_RATING' | 'STATUS_CHANGE' | 'REPORT_RESOLVED' | 'SYSTEM';
+  title: string;
+  message: string;
+  link?: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface UserRatingHistoryItem {
+  id: string;
+  storeId: string;
+  storeName: string;
+  storeAddress: string;
+  storeCategory: string;
+  storeCity: string;
+  storeAverageRating: number;
+  storeRatingCount: number;
+  value: number;
+  comment?: string;
+  status: string;
+  helpfulCount: number;
+  ownerReply?: OwnerReply | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminPlatformAnalytics {
+  userGrowth: { date: string; count: number }[];
+  storeGrowth: { date: string; count: number }[];
+  ratingTrends: { date: string; count: number; averageRating: number }[];
+  mostRatedStores: {
+    id: string;
+    name: string;
+    category: string;
+    city: string;
+    averageRating: number;
+    ratingCount: number;
+  }[];
+  highestRatedStores: {
+    id: string;
+    name: string;
+    category: string;
+    city: string;
+    averageRating: number;
+    ratingCount: number;
+  }[];
+  distribution: Record<number, number>;
+  totalRatings: number;
+  accountHealth: {
+    activeUsers: number;
+    inactiveUsers: number;
+    activeStores: number;
+    inactiveStores: number;
+  };
+}
+
+export interface LoginHistoryEntry {
+  ip: string;
+  userAgent: string;
+  timestamp: string;
+  status: string;
 }
 
 export interface StoreStats {

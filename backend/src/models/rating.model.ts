@@ -2,6 +2,13 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export type RatingStatus = 'VISIBLE' | 'HIDDEN' | 'FLAGGED';
 
+export interface IOwnerReply {
+  text: string;
+  createdAt: Date;
+  updatedAt: Date;
+  ownerId: mongoose.Types.ObjectId;
+}
+
 export interface IRating extends Document {
   userId: mongoose.Types.ObjectId;
   storeId: mongoose.Types.ObjectId;
@@ -13,6 +20,7 @@ export interface IRating extends Document {
   moderationReason?: string;
   helpfulVotes: mongoose.Types.ObjectId[];
   helpfulCount: number;
+  ownerReply?: IOwnerReply;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -73,6 +81,29 @@ const ratingSchema = new Schema<IRating>(
       type: Number,
       default: 0,
       index: true,
+    },
+    ownerReply: {
+      type: new Schema<IOwnerReply>(
+        {
+          text: {
+            type: String,
+            maxlength: 1000,
+            trim: true,
+          },
+          createdAt: {
+            type: Date,
+          },
+          updatedAt: {
+            type: Date,
+          },
+          ownerId: {
+            type: Schema.Types.ObjectId,
+            ref: 'User',
+          },
+        },
+        { _id: false }
+      ),
+      default: undefined,
     },
   },
   {
