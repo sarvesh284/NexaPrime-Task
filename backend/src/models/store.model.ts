@@ -15,6 +15,7 @@ export interface IStore extends Document {
   phone?: string;
   website?: string;
   coordinates?: IStoreCoordinates;
+  coverImage?: string;
   ownerId?: mongoose.Types.ObjectId;
   isActive: boolean;
   averageRating?: number;
@@ -80,6 +81,11 @@ const storeSchema = new Schema<IStore>(
     coordinates: {
       lat: { type: Number, default: 37.7749 },
       lng: { type: Number, default: -122.4194 },
+    },
+    coverImage: {
+      type: String,
+      default: '',
+      trim: true,
     },
     ownerId: {
       type: Schema.Types.ObjectId,

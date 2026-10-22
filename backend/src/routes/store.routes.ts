@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { StoreController } from '../controllers/store.controller';
 import { RatingController } from '../controllers/rating.controller';
+import { PhotoController } from '../controllers/photo.controller';
+import { photoUploadMiddleware, validateImageContent } from '../middleware/upload.middleware';
 import { optionalAuth, requireAuth } from '../middleware/auth.middleware';
 import { requireRole } from '../middleware/role.middleware';
 import { validateBody, validateParams, validateQuery } from '../middleware/validate.middleware';
@@ -78,6 +80,26 @@ router.post(
   requireAuth,
   validateBody(reportReviewSchema),
   RatingController.reportReview
+);
+
+// Store Photos (Upload, List, Set Cover)
+router.post(
+  '/:storeId/photos',
+  requireAuth,
+  photoUploadMiddleware,
+  validateImageContent,
+  PhotoController.uploadPhotos
+);
+
+router.get(
+  '/:storeId/photos',
+  PhotoController.getStorePhotos
+);
+
+router.patch(
+  '/:storeId/photos/:photoId/cover',
+  requireAuth,
+  PhotoController.setCoverPhoto
 );
 
 export default router;

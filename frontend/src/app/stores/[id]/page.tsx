@@ -21,11 +21,14 @@ import {
   Phone,
   Globe,
   Store as StoreIcon,
+  Camera,
 } from 'lucide-react';
 import { api, ApiError } from '../../../lib/api';
-import { Store, StoreStats, Review, RatingDistribution } from '../../../types';
+import { Store, StoreStats, Review, RatingDistribution, PhotoItem } from '../../../types';
 import { StarRating } from '../../../components/StarRating';
 import { RatingModal } from '../../../components/RatingModal';
+import { PhotoGallery } from '../../../components/PhotoGallery';
+import { PhotoUploadModal } from '../../../components/PhotoUploadModal';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../components/Toast';
 
@@ -59,6 +62,11 @@ function StoreDetailContent() {
   const [reportReason, setReportReason] = useState<'INAPPROPRIATE' | 'SPAM' | 'OFFENSIVE' | 'SUSPICIOUS' | 'OTHER'>('INAPPROPRIATE');
   const [reportDetails, setReportDetails] = useState('');
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+
+  // Photos state
+  const [photos, setPhotos] = useState<PhotoItem[]>([]);
+  const [photosLoading, setPhotosLoading] = useState(false);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
 
   const fetchStore = useCallback(async () => {
     if (!storeId) return;
@@ -100,6 +108,21 @@ function StoreDetailContent() {
     }
   }, [storeId, reviewSort]);
 
+  const fetchPhotos = useCallback(async () => {
+    if (!storeId) return;
+    try {
+      setPhotosLoading(true);
+      const res = await api.get<PhotoItem[]>(`/stores/${storeId}/photos`);
+      if (res.data) {
+        setPhotos(res.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch store photos:', err);
+    } finally {
+      setPhotosLoading(false);
+    }
+  }, [storeId]);
+
   useEffect(() => {
     fetchStore();
   }, [fetchStore]);
@@ -107,6 +130,69 @@ function StoreDetailContent() {
   useEffect(() => {
     fetchReviews();
   }, [fetchReviews]);
+
+  useEffect(() => {
+    fetchPhotos();
+  }, [fetchPhotos]);
+
+  const handleUploadClick = () => {
+    if (!user) {
+      toastError('Please sign in to upload photos.');
+      return;
+    }
+    setUploadModalOpen(true);
+  };
+
+  const handleUploadSuccess = (newPhotos: PhotoItem[]) => {
+    setPhotos((prev) => [...newPhotos, ...prev]);
+    fetchStore();
+  };
+
+  const handleSetCover = async (photoId: string) => {
+    try {
+      const res = await api.patch<{ coverImage: string; photoId: string }>(
+        `/stores/${storeId}/photos/${photoId}/cover`
+      );
+      if (res.data?.coverImage) {
+        setStore((prev) => (prev ? { ...prev, coverImage: res.data!.coverImage } : prev));
+      }
+      setPhotos((prev) =>
+        prev.map((p) => ({
+          ...p,
+          isCover: p.id === photoId,
+        }))
+      );
+      success('Cover photo updated successfully!');
+    } catch (err: unknown) {
+      const msg = err instanceof ApiError ? err.message : 'Failed to update cover photo.';
+      toastError(msg);
+      throw err;
+    }
+  };
+
+  const handleDeletePhoto = async (photoId: string) => {
+    try {
+      await api.delete(`/photos/${photoId}`);
+      setPhotos((prev) => prev.filter((p) => p.id !== photoId));
+      fetchStore();
+      success('Photo removed.');
+    } catch (err: unknown) {
+      const msg = err instanceof ApiError ? err.message : 'Failed to delete photo.';
+      toastError(msg);
+      throw err;
+    }
+  };
+
+  const handleReportPhoto = async (photoId: string, reason: string, details?: string) => {
+    try {
+      await api.post(`/photos/${photoId}/report`, { reason, details });
+      success('Photo report submitted.');
+    } catch (err: unknown) {
+      const msg = err instanceof ApiError ? err.message : 'Failed to report photo.';
+      toastError(msg);
+      throw err;
+    }
+  };
 
   // Fetch current user rating details
   useEffect(() => {
@@ -254,8 +340,40 @@ function StoreDetailContent() {
       </Link>
 
       {/* Main Store Banner Card */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
-        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 pb-6 border-b border-zinc-800">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-3xl shadow-2xl relative overflow-hidden">
+        {/* Cover Hero Banner */}
+        <div className="relative h-48 sm:h-64 w-full bg-zinc-950 overflow-hidden border-b border-zinc-800">
+          {store.coverImage ? (
+            <img
+              src={store.coverImage}
+              alt={`${store.name} cover`}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 text-zinc-600">
+              <StoreIcon className="w-12 h-12 opacity-30 mb-2" />
+              <span className="text-xs font-semibold tracking-wider uppercase opacity-40">
+                Community Rated Store
+              </span>
+            </div>
+          )}
+          {/* Ambient gradient scrim */}
+          <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-zinc-900/40 to-black/30" />
+
+          {/* Action on Hero */}
+          <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+            <button
+              onClick={handleUploadClick}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-black/60 hover:bg-black/80 text-white backdrop-blur-md border border-white/10 transition-colors shadow-lg"
+            >
+              <Camera className="w-3.5 h-3.5 text-amber-400" />
+              <span>{store.coverImage ? 'Add / Manage Photos' : 'Add Cover Photo'}</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="p-6 sm:p-8">
+          <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 pb-6 border-b border-zinc-800">
           <div className="space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-950/80 text-emerald-300 border border-emerald-800/60">
@@ -379,6 +497,22 @@ function StoreDetailContent() {
             </p>
           </div>
         </div>
+      </div>
+      </div>
+
+      {/* Store Photo Gallery */}
+      <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-xl">
+        <PhotoGallery
+          storeId={store.id}
+          storeName={store.name}
+          photos={photos}
+          loading={photosLoading}
+          isOwner={isOwner || (Boolean(store.ownerId) && Boolean(user?.id) && store.ownerId === user?.id)}
+          onUploadClick={handleUploadClick}
+          onSetCover={handleSetCover}
+          onDeletePhoto={handleDeletePhoto}
+          onReportPhoto={handleReportPhoto}
+        />
       </div>
 
       {/* Feature E: Star Rating Distribution Breakdown */}
@@ -607,6 +741,16 @@ function StoreDetailContent() {
           myComment: userRatingComment,
         }}
         onRatingSubmitted={handleRatingSubmitted}
+      />
+
+      {/* Photo Upload Modal */}
+      <PhotoUploadModal
+        isOpen={uploadModalOpen}
+        storeId={store.id}
+        storeName={store.name}
+        isOwner={isOwner || (Boolean(store.ownerId) && Boolean(user?.id) && store.ownerId === user?.id)}
+        onClose={() => setUploadModalOpen(false)}
+        onSuccess={handleUploadSuccess}
       />
     </div>
   );

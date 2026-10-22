@@ -30,6 +30,7 @@ export interface Store {
   description?: string;
   phone?: string;
   website?: string;
+  coverImage?: string;
   coordinates?: { lat: number; lng: number };
   recentRatingsCount?: number;
 }
@@ -162,6 +163,11 @@ export interface OwnerDashboardData {
     id: string;
     name: string;
     address: string;
+    city?: string;
+    coverImage?: string;
+    description?: string;
+    phone?: string;
+    website?: string;
     createdAt: string;
     totalRatings: number;
     averageRating: number;
@@ -285,3 +291,33 @@ export interface ApiResponse<T = unknown> {
   };
   pagination?: Pagination;
 }
+
+export interface PhotoReport {
+  userId: { id?: string; _id?: string; name: string; email?: string } | string;
+  reason: string;
+  details?: string;
+  createdAt: string;
+}
+
+export interface PhotoItem {
+  id: string;
+  storeId: string | { id?: string; _id?: string; name: string; address?: string; city?: string; coverImage?: string };
+  userId: {
+    id?: string;
+    _id?: string;
+    name: string;
+    email?: string;
+    role?: UserRole;
+  } | string;
+  url: string;
+  storageKey?: string;
+  storageProvider?: string;
+  caption?: string;
+  isCover: boolean;
+  isOfficial: boolean;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REPORTED';
+  reports?: PhotoReport[];
+  createdAt: string;
+  updatedAt?: string;
+}
+

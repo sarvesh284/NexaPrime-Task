@@ -27,6 +27,13 @@ const envSchema = z.object({
   // Bayesian Rating Weight
   BAYESIAN_MIN_RATINGS: z.string().transform(Number).default('5'),
   BAYESIAN_PRIOR_RATING: z.string().transform(Number).default('3.0'),
+
+  // Cloudinary / Storage Settings (Optional - fallback to local storage if empty)
+  CLOUDINARY_CLOUD_NAME: z.string().optional().default(''),
+  CLOUDINARY_API_KEY: z.string().optional().default(''),
+  CLOUDINARY_API_SECRET: z.string().optional().default(''),
+  MAX_FILE_SIZE_MB: z.string().transform(Number).default('5'),
+  MAX_FILES_PER_UPLOAD: z.string().transform(Number).default('5'),
 });
 
 const parsed = envSchema.safeParse(process.env);

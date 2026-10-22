@@ -6,6 +6,7 @@ import adminRoutes from './admin.routes';
 import healthRoutes from './health.routes';
 import docsRoutes from './docs.routes';
 import notificationRoutes from './notification.routes';
+import photoRoutes from './photo.routes';
 
 const apiRouter = Router();
 
@@ -14,6 +15,7 @@ apiRouter.use('/stores', storeRoutes);
 apiRouter.use('/owner', ownerRoutes);
 apiRouter.use('/admin', adminRoutes);
 apiRouter.use('/notifications', notificationRoutes);
+apiRouter.use('/photos', photoRoutes);
 apiRouter.use('/health', healthRoutes);
 apiRouter.use('/docs', docsRoutes);
 

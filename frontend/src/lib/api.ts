@@ -39,10 +39,13 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     }
   }
 
-  const defaultHeaders: HeadersInit = {
-    'Content-Type': 'application/json',
+  const defaultHeaders: Record<string, string> = {
     'X-Requested-With': 'XMLHttpRequest', // CSRF defense header
   };
+
+  if (!(customConfig.body instanceof FormData)) {
+    defaultHeaders['Content-Type'] = 'application/json';
+  }
 
   const config: RequestInit = {
     method: 'GET',
@@ -106,4 +109,11 @@ export const api = {
 
   delete: <T>(endpoint: string, options?: RequestOptions) =>
     request<T>(endpoint, { ...options, method: 'DELETE' }),
+
+  upload: <T>(endpoint: string, formData: FormData, options?: RequestOptions) =>
+    request<T>(endpoint, {
+      ...options,
+      method: 'POST',
+      body: formData,
+    }),
 };

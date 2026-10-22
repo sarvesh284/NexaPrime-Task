@@ -1,4 +1,5 @@
 import express, { Application } from 'express';
+import path from 'path';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
@@ -54,6 +55,9 @@ export const createApp = (): Application => {
 
   // CSRF protection for state-changing endpoints
   app.use('/api', csrfProtection);
+
+  // Serve static uploaded assets
+  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
   // Mount API v1
   app.use('/api/v1', apiRouter);

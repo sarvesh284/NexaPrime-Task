@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { AdminController } from '../controllers/admin.controller';
+import { PhotoController } from '../controllers/photo.controller';
 import { requireAuth } from '../middleware/auth.middleware';
 import { requireRole } from '../middleware/role.middleware';
 import { validateBody, validateParams, validateQuery } from '../middleware/validate.middleware';
@@ -55,5 +56,9 @@ router.post(
 
 // Audit Logs
 router.get('/audit-logs', validateQuery(adminAuditQuerySchema), AdminController.getAuditLogs);
+
+// Photo Moderation (Admin Queue)
+router.get('/photos', PhotoController.getReportedPhotos);
+router.patch('/photos/:id/moderate', PhotoController.moderatePhoto);
 
 export default router;

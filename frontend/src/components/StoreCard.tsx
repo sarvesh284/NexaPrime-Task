@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { MapPin, Star, Sparkles, ArrowRight, Heart } from 'lucide-react';
+import { MapPin, Star, Sparkles, ArrowRight, Heart, Store as StoreIcon, Camera } from 'lucide-react';
 import { Store } from '../types';
 import { StarRating } from './StarRating';
 import { useAuth } from '../context/AuthContext';
@@ -16,12 +16,59 @@ interface StoreCardProps {
 export const StoreCard: React.FC<StoreCardProps> = ({ store, onOpenRating, onToggleFavorite }) => {
   const { user } = useAuth();
   const isOwner = user?.role === 'STORE_OWNER';
+  const [imageFailed, setImageFailed] = React.useState(false);
 
   return (
-    <div className="group relative flex flex-col justify-between bg-zinc-900/80 hover:bg-zinc-900 border border-zinc-800 hover:border-zinc-700/80 rounded-2xl p-5 transition-all duration-300 shadow-lg hover:shadow-2xl hover:shadow-amber-500/5">
-      <div>
-        {/* Top Badges */}
-        <div className="flex items-center justify-between gap-2 mb-3">
+    <div className="group relative flex flex-col justify-between bg-zinc-900/80 hover:bg-zinc-900 border border-zinc-800 hover:border-zinc-700/80 rounded-2xl overflow-hidden transition-all duration-300 shadow-lg hover:shadow-2xl hover:shadow-amber-500/5">
+      {/* Cover Image Banner */}
+      <div className="relative h-36 w-full bg-zinc-950 overflow-hidden border-b border-zinc-800/80">
+        {store.coverImage && !imageFailed ? (
+          <img
+            src={store.coverImage}
+            alt={store.name}
+            onError={() => setImageFailed(true)}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-zinc-900 via-zinc-950 to-zinc-900 text-zinc-600">
+            <StoreIcon className="w-10 h-10 opacity-30 mb-1" />
+            <span className="text-[11px] font-medium tracking-wider uppercase opacity-40">Store Preview</span>
+          </div>
+        )}
+
+        {/* Gradient Scrim for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-transparent to-black/40" />
+
+        {/* Favorite & Cover Photo indicator badges on image */}
+        <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10">
+          {store.coverImage && !imageFailed && (
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-black/60 backdrop-blur-md text-zinc-300 border border-white/10">
+              <Camera className="w-2.5 h-2.5 text-amber-400" />
+              <span>Cover</span>
+            </span>
+          )}
+
+          {onToggleFavorite && user && (
+            <button
+              onClick={() => onToggleFavorite(store.id)}
+              className="p-1.5 text-zinc-300 hover:text-rose-400 rounded-lg bg-black/50 backdrop-blur-md border border-white/10 hover:bg-black/70 transition-colors"
+              title={store.isFavorite ? 'Remove favorite' : 'Add favorite'}
+            >
+              <Heart
+                className={`w-3.5 h-3.5 transition-colors ${
+                  store.isFavorite ? 'fill-rose-500 text-rose-500' : ''
+                }`}
+              />
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="p-5 flex-1 flex flex-col justify-between">
+        <div>
+          {/* Top Badges */}
+          <div className="flex items-center justify-between gap-2 mb-3">
           <div className="flex items-center gap-1.5 flex-wrap">
             {store.category && (
               <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-zinc-800 text-zinc-300 border border-zinc-700/60">
@@ -118,6 +165,7 @@ export const StoreCard: React.FC<StoreCardProps> = ({ store, onOpenRating, onTog
           <span>Details</span>
           <ArrowRight className="w-3 h-3" />
         </Link>
+      </div>
       </div>
     </div>
   );

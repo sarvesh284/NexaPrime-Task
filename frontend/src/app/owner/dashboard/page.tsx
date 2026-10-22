@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   LayoutDashboard,
@@ -24,6 +24,9 @@ import {
   Phone,
   Globe,
   MapPin,
+  Camera,
+  UploadCloud,
+  Check,
 } from 'lucide-react';
 import { api } from '../../../lib/api';
 import {
@@ -32,7 +35,9 @@ import {
   Pagination,
   OwnerAnalyticsData,
   Store,
+  PhotoItem,
 } from '../../../types';
+import { PhotoUploadModal } from '../../../components/PhotoUploadModal';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../components/Toast';
 
@@ -64,6 +69,13 @@ export default function OwnerDashboardPage() {
   const [loadingAnalytics, setLoadingAnalytics] = useState(true);
   const [loadingRatings, setLoadingRatings] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
+
+  // Owner Photos State
+  const [activeTab, setActiveTab] = useState<'analytics' | 'photos'>('analytics');
+  const [ownerPhotos, setOwnerPhotos] = useState<PhotoItem[]>([]);
+  const [loadingOwnerPhotos, setLoadingOwnerPhotos] = useState(false);
+  const [photoUploadModalOpen, setPhotoUploadModalOpen] = useState(false);
+  const [activeStoreForUpload, setActiveStoreForUpload] = useState<Store | null>(null);
 
   // Search debounce
   useEffect(() => {
@@ -349,6 +361,71 @@ export default function OwnerDashboardPage() {
     }
   };
 
+  const fetchOwnerPhotos = useCallback(async (storeIdToFetch?: string) => {
+    const targetStoreId = storeIdToFetch || selectedStoreId || dashboard?.stores?.[0]?.id;
+    if (!targetStoreId) return;
+
+    try {
+      setLoadingOwnerPhotos(true);
+      const res = await api.get<PhotoItem[]>(`/stores/${targetStoreId}/photos`);
+      if (res.data) {
+        setOwnerPhotos(res.data);
+      }
+    } catch (err) {
+      console.error('Failed to load owner photos:', err);
+    } finally {
+      setLoadingOwnerPhotos(false);
+    }
+  }, [selectedStoreId, dashboard?.stores]);
+
+  useEffect(() => {
+    if (activeTab === 'photos') {
+      fetchOwnerPhotos();
+    }
+  }, [activeTab, fetchOwnerPhotos, selectedStoreId]);
+
+  const handleSetOwnerCover = async (photoId: string, storeId: string) => {
+    try {
+      const res = await api.patch<{ coverImage: string; photoId: string }>(
+        `/stores/${storeId}/photos/${photoId}/cover`
+      );
+      if (res.data?.coverImage && dashboard) {
+        setDashboard({
+          ...dashboard,
+          stores: dashboard.stores.map((s) =>
+            s.id === storeId ? { ...s, coverImage: res.data!.coverImage } : s
+          ),
+        });
+      }
+      setOwnerPhotos((prev) =>
+        prev.map((p) => ({
+          ...p,
+          isCover: p.id === photoId,
+        }))
+      );
+      success('Cover photo updated successfully!');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to update cover photo.';
+      toastError(msg);
+    }
+  };
+
+  const handleDeleteOwnerPhoto = async (photoId: string) => {
+    try {
+      await api.delete(`/photos/${photoId}`);
+      setOwnerPhotos((prev) => prev.filter((p) => p.id !== photoId));
+      success('Photo deleted.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to delete photo.';
+      toastError(msg);
+    }
+  };
+
+  const handleOpenPhotoUpload = (store: Store) => {
+    setActiveStoreForUpload(store);
+    setPhotoUploadModalOpen(true);
+  };
+
   // Loading state for auth
   if (authLoading) {
     return (
@@ -434,7 +511,36 @@ export default function OwnerDashboardPage() {
         </div>
       </div>
 
-      {/* KPI Cards */}
+      {/* Navigation Tabs */}
+      <div className="flex items-center gap-2 border-b border-zinc-800 pb-3">
+        <button
+          onClick={() => setActiveTab('analytics')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+            activeTab === 'analytics'
+              ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/20'
+              : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
+          }`}
+        >
+          <BarChart3 className="w-4 h-4" />
+          <span>Analytics & Customer Reviews</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('photos')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+            activeTab === 'photos'
+              ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/20'
+              : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
+          }`}
+        >
+          <Camera className="w-4 h-4" />
+          <span>Store Photo Gallery Management</span>
+        </button>
+      </div>
+
+      {activeTab === 'analytics' && (
+        <div className="space-y-8">
+          {/* KPI Cards */}
       {loadingDashboard ? (
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
@@ -756,6 +862,205 @@ export default function OwnerDashboardPage() {
           </div>
         )}
       </div>
+        </div>
+      )}
+
+      {/* Photo Gallery Tab Content */}
+      {activeTab === 'photos' && (
+        <div className="space-y-6">
+          {/* Store Selection Toolbar & Upload CTA */}
+          <div className="p-5 rounded-2xl bg-zinc-900 border border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-xs font-semibold text-zinc-400">Select Store:</span>
+              <select
+                value={selectedStoreId || dashboard?.stores?.[0]?.id || ''}
+                onChange={(e) => {
+                  setSelectedStoreId(e.target.value);
+                  fetchOwnerPhotos(e.target.value);
+                }}
+                className="py-2 px-3 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs focus:outline-none focus:border-purple-400 cursor-pointer"
+              >
+                {dashboard?.stores?.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({s.city || 'Store'})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {(() => {
+              const currentStore =
+                dashboard?.stores?.find((s) => s.id === (selectedStoreId || dashboard?.stores?.[0]?.id)) ||
+                dashboard?.stores?.[0];
+              return (
+                <button
+                  onClick={() => {
+                    if (currentStore) handleOpenPhotoUpload(currentStore as any);
+                  }}
+                  className="py-2.5 px-4 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold flex items-center justify-center gap-2 transition-all shadow-lg shadow-purple-600/20"
+                >
+                  <UploadCloud className="w-4 h-4" />
+                  <span>Upload Official Store Photos</span>
+                </button>
+              );
+            })()}
+          </div>
+
+          {/* Current Store Cover Preview */}
+          {(() => {
+            const currentStore =
+              dashboard?.stores?.find((s) => s.id === (selectedStoreId || dashboard?.stores?.[0]?.id)) ||
+              dashboard?.stores?.[0];
+            return (
+              <div className="relative rounded-2xl overflow-hidden border border-zinc-800 bg-zinc-950 p-6 flex flex-col md:flex-row items-center gap-6">
+                <div className="relative w-full md:w-56 h-36 rounded-xl overflow-hidden bg-zinc-900 border border-zinc-800 shrink-0">
+                  {currentStore?.coverImage ? (
+                    <img
+                      src={currentStore.coverImage}
+                      alt={`${currentStore.name} cover`}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-zinc-600">
+                      <Camera className="w-8 h-8 opacity-30 mb-1" />
+                      <span className="text-[10px] uppercase font-semibold">No Cover Set</span>
+                    </div>
+                  )}
+                  {currentStore?.coverImage && (
+                    <div className="absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500 text-zinc-950 shadow">
+                      Current Cover
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-1.5 flex-1 text-center md:text-left">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                    Store Branding & Cover
+                  </span>
+                  <h3 className="text-lg font-bold text-white">{currentStore?.name}</h3>
+                  <p className="text-xs text-zinc-400">
+                    Your cover photo is the main hero banner displayed at the top of your public store page and on store cards across search results.
+                  </p>
+                  <p className="text-[11px] text-zinc-500 pt-1">
+                    Select any photo in your gallery below and click &quot;Set as Cover Photo&quot; to change it immediately.
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Store Gallery Grid */}
+          <div className="p-6 rounded-2xl bg-zinc-900 border border-zinc-800 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Camera className="w-4 h-4 text-purple-400" />
+                <span>Store Photos Gallery ({ownerPhotos.length})</span>
+              </h3>
+              <span className="text-xs text-zinc-400">
+                Official and community photos for this store
+              </span>
+            </div>
+
+            {loadingOwnerPhotos ? (
+              <div className="py-16 flex justify-center">
+                <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
+              </div>
+            ) : ownerPhotos.length === 0 ? (
+              <div className="py-14 text-center space-y-3">
+                <Camera className="w-12 h-12 text-zinc-700 mx-auto" />
+                <p className="text-sm font-semibold text-zinc-400">No photos uploaded for this store yet</p>
+                <p className="text-xs text-zinc-500 max-w-sm mx-auto">
+                  Upload official high-resolution photos of your interior, storefront, or products to build trust with customers!
+                </p>
+                {(() => {
+                  const currentStore =
+                    dashboard?.stores?.find((s) => s.id === (selectedStoreId || dashboard?.stores?.[0]?.id)) ||
+                    dashboard?.stores?.[0];
+                  return (
+                    <button
+                      onClick={() => {
+                        if (currentStore) handleOpenPhotoUpload(currentStore as any);
+                      }}
+                      className="mt-2 py-2 px-4 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+                    >
+                      <UploadCloud className="w-3.5 h-3.5" />
+                      <span>Upload Photos Now</span>
+                    </button>
+                  );
+                })()}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {ownerPhotos.map((photo) => {
+                  const targetStoreId = selectedStoreId || dashboard?.stores?.[0]?.id || '';
+                  return (
+                    <div
+                      key={photo.id}
+                      className="group relative rounded-xl overflow-hidden bg-zinc-950 border border-zinc-800 hover:border-purple-500/40 transition-all flex flex-col justify-between"
+                    >
+                      <div className="relative aspect-square w-full overflow-hidden bg-zinc-900">
+                        <img
+                          src={photo.url}
+                          alt={photo.caption || 'Store photo'}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <div className="absolute top-2 left-2 flex items-center gap-1">
+                          {photo.isCover && (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500 text-zinc-950 shadow">
+                              Cover
+                            </span>
+                          )}
+                          {photo.isOfficial && !photo.isCover && (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-blue-600 text-white shadow">
+                              Official
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="p-3 space-y-2 bg-zinc-900/90 border-t border-zinc-800">
+                        <p className="text-xs text-white line-clamp-1">
+                          {photo.caption || <span className="text-zinc-500 italic">No caption</span>}
+                        </p>
+                        <div className="flex items-center justify-between text-[10px] text-zinc-500">
+                          <span>
+                            {typeof photo.userId === 'object' ? photo.userId.name : 'User'}
+                          </span>
+                          <span>{new Date(photo.createdAt).toLocaleDateString()}</span>
+                        </div>
+
+                        <div className="pt-2 border-t border-zinc-800/80 flex items-center gap-1.5">
+                          {!photo.isCover ? (
+                            <button
+                              onClick={() => handleSetOwnerCover(photo.id, targetStoreId)}
+                              className="flex-1 py-1.5 px-2 rounded-lg text-[10px] font-semibold bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition-colors flex items-center justify-center gap-1"
+                            >
+                              <Star className="w-2.5 h-2.5 fill-current" />
+                              <span>Set Cover</span>
+                            </button>
+                          ) : (
+                            <span className="flex-1 py-1.5 px-2 rounded-lg text-[10px] font-semibold bg-amber-500/20 text-amber-400 text-center">
+                              Active Cover
+                            </span>
+                          )}
+
+                          <button
+                            onClick={() => handleDeleteOwnerPhoto(photo.id)}
+                            className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-400 hover:bg-zinc-800 transition-colors"
+                            title="Delete photo from store"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Reply Modal (O3 / R5) */}
       {replyModalRating && (
@@ -938,6 +1243,24 @@ export default function OwnerDashboardPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Photo Upload Modal for Store Owner */}
+      {activeStoreForUpload && (
+        <PhotoUploadModal
+          isOpen={photoUploadModalOpen}
+          storeId={activeStoreForUpload.id}
+          storeName={activeStoreForUpload.name}
+          isOwner={true}
+          onClose={() => {
+            setPhotoUploadModalOpen(false);
+            setActiveStoreForUpload(null);
+          }}
+          onSuccess={(newPhotos) => {
+            setOwnerPhotos((prev) => [...newPhotos, ...prev]);
+            fetchOwnerPhotos(activeStoreForUpload.id);
+          }}
+        />
       )}
     </div>
   );
