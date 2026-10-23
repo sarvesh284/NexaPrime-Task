@@ -52,6 +52,13 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     'X-Requested-With': 'XMLHttpRequest', // CSRF defense header
   };
 
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      defaultHeaders['Authorization'] = `Bearer ${token}`;
+    }
+  }
+
   if (!(customConfig.body instanceof FormData)) {
     defaultHeaders['Content-Type'] = 'application/json';
   }

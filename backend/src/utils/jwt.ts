@@ -18,7 +18,7 @@ export const getCookieOptions = (): CookieOptions => {
   return {
     httpOnly: true,
     secure: isProduction,
-    sameSite: env.COOKIE_SAME_SITE as 'lax' | 'strict' | 'none',
+    sameSite: isProduction ? 'none' : (env.COOKIE_SAME_SITE as 'lax' | 'strict' | 'none'),
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
     path: '/',
   };

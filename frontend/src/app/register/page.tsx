@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Store, User, Mail, Lock, MapPin, Loader2, CheckCircle2, Sparkles } from 'lucide-react';
+import { Store, User, Mail, Lock, MapPin, Loader2, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/Toast';
 import { ApiError } from '../../lib/api';
@@ -48,7 +48,6 @@ export default function RegisterPage() {
   const {
     register,
     handleSubmit,
-    setValue,
     watch,
     formState: { errors },
   } = useForm<RegisterFormData>({
@@ -81,14 +80,6 @@ export default function RegisterPage() {
     }
   };
 
-  const fillSampleValidData = () => {
-    setValue('name', 'Benjamin Franklin Explorer');
-    setValue('email', `user.${Math.floor(Math.random() * 9000 + 1000)}@example.com`);
-    setValue('password', 'SecurePass@123');
-    setValue('address', '789 Independence Hall Avenue, Philadelphia, PA 19106');
-    setServerError(null);
-  };
-
   return (
     <div className="min-h-[90vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 transition-colors">
       <div className="max-w-lg w-full space-y-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-8 shadow-xl dark:shadow-2xl relative">
@@ -100,17 +91,8 @@ export default function RegisterPage() {
             Create your account
           </h2>
           <p className="mt-1 text-xs text-slate-500 dark:text-zinc-400">
-            Public registration creates a verified Normal User account to discover and rate stores
+            Sign up to discover stores, submit ratings, and share reviews
           </p>
-
-          <button
-            type="button"
-            onClick={fillSampleValidData}
-            className="mt-3 text-xs text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 inline-flex items-center gap-1 font-medium bg-amber-500/10 hover:bg-amber-500/20 px-3 py-1.5 rounded-lg border border-amber-500/30 transition-colors shadow-sm"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Auto-fill Valid Test Data</span>
-          </button>
         </div>
 
         {serverError && (

@@ -127,38 +127,21 @@ export default function HomePage() {
                 </Link>
               )
             ) : (
-              <Link
-                href="/login"
-                className="w-full sm:w-auto py-3.5 px-7 rounded-xl border border-slate-300 dark:border-zinc-700 bg-white hover:bg-slate-50 dark:bg-zinc-900/80 dark:hover:bg-zinc-800 text-slate-800 dark:text-zinc-200 font-semibold text-sm transition-colors shadow-sm"
-              >
-                Sign In with Demo Accounts
-              </Link>
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/login"
+                  className="py-3.5 px-7 rounded-xl border border-slate-300 dark:border-zinc-700 bg-white hover:bg-slate-50 dark:bg-zinc-900/80 dark:hover:bg-zinc-800 text-slate-800 dark:text-zinc-200 font-semibold text-sm transition-colors shadow-sm"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  href="/register"
+                  className="py-3.5 px-7 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-sm transition-colors shadow-sm"
+                >
+                  Get Started
+                </Link>
+              </div>
             )}
-          </div>
-
-          {/* Quick Demo Credentials Info Banner */}
-          <div className="mt-12 p-4 max-w-2xl mx-auto rounded-2xl bg-white/80 dark:bg-zinc-900/60 border border-slate-200 dark:border-zinc-800/80 text-left shadow-sm">
-            <div className="flex items-center justify-between mb-2 pb-2 border-b border-slate-200 dark:border-zinc-800">
-              <span className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
-                Pre-configured Demo Accounts
-              </span>
-              <Link href="/login" className="text-xs text-amber-600 dark:text-amber-400 hover:underline">
-                1-Click Login →
-              </Link>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-zinc-950/70 border border-slate-200 dark:border-zinc-800">
-                <p className="font-semibold text-slate-800 dark:text-zinc-200">Normal User Account:</p>
-                <p className="text-slate-600 dark:text-zinc-400 font-mono mt-0.5">sarvesh.user@example.com</p>
-                <p className="text-slate-500 dark:text-zinc-500 font-mono text-[11px]">Password: Password@123</p>
-              </div>
-              <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-zinc-950/70 border border-slate-200 dark:border-zinc-800">
-                <p className="font-semibold text-slate-800 dark:text-zinc-200">Store Owner Account:</p>
-                <p className="text-slate-600 dark:text-zinc-400 font-mono mt-0.5">sarvesh.owner@example.com</p>
-                <p className="text-slate-500 dark:text-zinc-500 font-mono text-[11px]">Password: Password@123</p>
-              </div>
-            </div>
           </div>
         </div>
       </section>

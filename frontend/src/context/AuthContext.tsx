@@ -53,14 +53,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password: string) => {
-    const res = await api.post<{ user: User }>('/auth/login', { email, password });
+    const res = await api.post<{ user: User; token?: string }>('/auth/login', { email, password });
+    if (res.data?.token && typeof window !== 'undefined') {
+      localStorage.setItem('auth_token', res.data.token);
+    }
     if (res.data?.user) {
       setUser(res.data.user);
     }
   };
 
   const register = async (data: { name: string; email: string; password: string; address: string }) => {
-    const res = await api.post<{ user: User }>('/auth/register', data);
+    const res = await api.post<{ user: User; token?: string }>('/auth/register', data);
+    if (res.data?.token && typeof window !== 'undefined') {
+      localStorage.setItem('auth_token', res.data.token);
+    }
     if (res.data?.user) {
       setUser(res.data.user);
     }
@@ -70,6 +76,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await api.post('/auth/logout');
     } finally {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('auth_token');
+      }
       setUser(null);
     }
   };

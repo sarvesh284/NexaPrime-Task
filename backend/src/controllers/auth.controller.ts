@@ -9,7 +9,7 @@ export class AuthController {
     try {
       const result = await AuthService.register(req.body);
       setAuthCookie(res, result.token);
-      sendSuccess(res, { user: result.user }, 'Registration successful', 201);
+      sendSuccess(res, { user: result.user, token: result.token }, 'Registration successful', 201);
     } catch (error) {
       next(error);
     }
@@ -21,7 +21,7 @@ export class AuthController {
       const userAgent = (req.headers['user-agent'] as string) || 'Unknown';
       const result = await AuthService.login(req.body, ip, userAgent);
       setAuthCookie(res, result.token);
-      sendSuccess(res, { user: result.user }, 'Login successful', 200);
+      sendSuccess(res, { user: result.user, token: result.token }, 'Login successful', 200);
     } catch (error) {
       next(error);
     }

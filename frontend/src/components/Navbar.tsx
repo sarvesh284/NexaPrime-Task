@@ -129,7 +129,11 @@ export const Navbar: React.FC = () => {
           )}
 
           <a
-            href="http://localhost:5000/api/v1/docs"
+            href={
+              process.env.NEXT_PUBLIC_API_URL
+                ? `${process.env.NEXT_PUBLIC_API_URL.replace(/\/api\/v1\/?$/, '')}/api/v1/docs`
+                : 'http://localhost:5000/api/v1/docs'
+            }
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-zinc-300 border border-slate-200 dark:border-zinc-800 rounded-lg px-2.5 py-1 transition-colors"

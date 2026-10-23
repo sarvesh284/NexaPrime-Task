@@ -453,7 +453,7 @@ export default function OwnerDashboardPage() {
             href="/login"
             className="py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-zinc-950 font-bold text-xs"
           >
-            Sign In with Demo Owner Account (sarvesh.owner@example.com)
+            Sign In with Store Owner Account
           </Link>
           <Link
             href="/stores"

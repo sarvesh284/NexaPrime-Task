@@ -58,12 +58,15 @@ export const errorHandler = (
     console.error('Unhandled Application Error:', err);
   }
 
+  // In production, preserve operational client error messages (4xx) like "Invalid email or password"
+  // Only mask true unhandled internal server errors (500+)
+  const isClientError = typeof err.statusCode === 'number' && err.statusCode >= 400 && err.statusCode < 500;
   const message =
-    env.NODE_ENV === 'production'
-      ? 'An unexpected internal server error occurred'
-      : err.message || 'Internal Server Error';
+    isClientError || env.NODE_ENV !== 'production'
+      ? err.message || 'An error occurred'
+      : 'An unexpected internal server error occurred';
 
-  sendError(res, message, err.statusCode || 500, err.code || 'INTERNAL_SERVER_ERROR');
+  sendError(res, message, err.statusCode || 500, err.code || 'INTERNAL_SERVER_ERROR', err.details);
 };
 
 export const notFoundHandler = (req: Request, res: Response): void => {

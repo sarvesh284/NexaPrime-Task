@@ -77,7 +77,7 @@ export default function AdminDashboardPage() {
             href="/login"
             className="py-2.5 px-4 rounded-xl bg-amber-500 text-zinc-950 font-bold text-xs inline-block"
           >
-            Sign in as Admin (sarvesh.admin@example.com)
+            Sign in as Administrator
           </Link>
         </div>
       </div>

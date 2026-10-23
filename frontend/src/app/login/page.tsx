@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Store, Lock, Mail, Loader2, UserCheck, ShieldAlert, Shield } from 'lucide-react';
+import { Store, Lock, Mail, Loader2, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/Toast';
 import { ApiError } from '../../lib/api';
@@ -47,37 +47,6 @@ export default function LoginPage() {
     }
   };
 
-  const fillDemoAccount = async (demoEmail: string) => {
-    setEmail(demoEmail);
-    setPassword('Password@123');
-    setErrorMessage(null);
-
-    try {
-      setIsLoading(true);
-      await login(demoEmail, 'Password@123');
-      const roleName = demoEmail.includes('admin')
-        ? 'Platform Admin'
-        : demoEmail.includes('owner')
-        ? 'Store Owner'
-        : 'Normal User';
-      success(`Logged in as ${roleName}!`);
-
-      if (demoEmail.includes('admin')) {
-        router.push('/admin/dashboard');
-      } else if (demoEmail.includes('owner')) {
-        router.push('/owner/dashboard');
-      } else {
-        router.push('/stores');
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof ApiError ? err.message : 'Login failed';
-      setErrorMessage(msg);
-      toastError(msg);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <div className="min-h-[85vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 transition-colors">
       <div className="max-w-md w-full space-y-7 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-8 shadow-xl dark:shadow-2xl relative">
@@ -91,48 +60,6 @@ export default function LoginPage() {
           <p className="mt-2 text-xs text-slate-500 dark:text-zinc-400">
             Access your ratings, manage your stores, or oversee the platform
           </p>
-        </div>
-
-        {/* 1-Click Demo Buttons */}
-        <div className="p-4 rounded-xl bg-slate-50 dark:bg-zinc-950/70 border border-slate-200 dark:border-zinc-800">
-          <p className="text-xs font-semibold text-slate-700 dark:text-zinc-300 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-            <UserCheck className="w-4 h-4 text-amber-500" />
-            <span>Instant Demo Access (1-Click)</span>
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <button
-              type="button"
-              disabled={isLoading}
-              onClick={() => fillDemoAccount('sarvesh.user@example.com')}
-              className="py-2 px-2.5 rounded-lg bg-white dark:bg-zinc-800/80 hover:bg-slate-100 dark:hover:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-left text-xs text-slate-800 dark:text-zinc-200 transition-colors flex flex-col justify-between shadow-sm"
-            >
-              <p className="font-semibold text-amber-700 dark:text-amber-300">User</p>
-              <p className="text-[10px] text-slate-500 dark:text-zinc-400 truncate">sarvesh.user</p>
-            </button>
-
-            <button
-              type="button"
-              disabled={isLoading}
-              onClick={() => fillDemoAccount('sarvesh.owner@example.com')}
-              className="py-2 px-2.5 rounded-lg bg-white dark:bg-zinc-800/80 hover:bg-slate-100 dark:hover:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-left text-xs text-slate-800 dark:text-zinc-200 transition-colors flex flex-col justify-between shadow-sm"
-            >
-              <p className="font-semibold text-purple-700 dark:text-purple-300">Owner</p>
-              <p className="text-[10px] text-slate-500 dark:text-zinc-400 truncate">sarvesh.owner</p>
-            </button>
-
-            <button
-              type="button"
-              disabled={isLoading}
-              onClick={() => fillDemoAccount('sarvesh.admin@example.com')}
-              className="py-2 px-2.5 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-950/60 border border-rose-200 dark:border-rose-800/60 text-left text-xs text-slate-800 dark:text-zinc-200 transition-colors flex flex-col justify-between shadow-sm"
-            >
-              <p className="font-semibold text-rose-700 dark:text-rose-300 flex items-center gap-1">
-                <Shield className="w-3 h-3 text-rose-500" />
-                <span>Admin</span>
-              </p>
-              <p className="text-[10px] text-rose-600 dark:text-rose-400/80 truncate">sarvesh.admin</p>
-            </button>
-          </div>
         </div>
 
         {errorMessage && (
