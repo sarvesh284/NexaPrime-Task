@@ -24,6 +24,9 @@ export const createApp = (): Application => {
   // CORS configuration with explicit origin and credentials
   const allowedOrigins = [
     env.FRONTEND_URL,
+    env.CLIENT_URL,
+    'https://ratelocal-omega.vercel.app',
+    'https://ratelocal.vercel.app',
     'http://localhost:3000',
     'http://127.0.0.1:3000',
   ].filter(Boolean);
@@ -33,7 +36,12 @@ export const createApp = (): Application => {
       origin: (origin, callback) => {
         // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
         if (!origin) return callback(null, true);
-        if (allowedOrigins.includes(origin)) {
+        if (
+          allowedOrigins.includes(origin) ||
+          origin.endsWith('.vercel.app') ||
+          origin.includes('localhost') ||
+          origin.includes('127.0.0.1')
+        ) {
           return callback(null, true);
         }
         return callback(new Error(`CORS policy does not allow access from origin: ${origin}`));

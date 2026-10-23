@@ -19,7 +19,12 @@ export const csrfProtection = (req: Request, res: Response, next: NextFunction):
     try {
       const originUrl = new URL(origin);
       const frontendUrl = new URL(env.FRONTEND_URL);
-      if (originUrl.origin !== frontendUrl.origin && !originUrl.origin.includes('localhost') && !originUrl.origin.includes('127.0.0.1')) {
+      if (
+        originUrl.origin !== frontendUrl.origin &&
+        !originUrl.hostname.endsWith('.vercel.app') &&
+        !originUrl.origin.includes('localhost') &&
+        !originUrl.origin.includes('127.0.0.1')
+      ) {
         sendError(res, 'CSRF verification failed: Untrusted origin', 403, 'CSRF_ERROR');
         return;
       }
