@@ -97,6 +97,7 @@ export class OwnerService {
         id: store._id.toString(),
         name: store.name,
         address: store.address,
+        coverImage: store.coverImage,
         createdAt: store.createdAt,
         totalRatings: stats.totalRatings,
         averageRating: stats.averageRating,

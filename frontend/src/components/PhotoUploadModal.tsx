@@ -180,31 +180,31 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/80 backdrop-blur-sm animate-fade-in">
       <div
-        className="relative w-full max-w-2xl bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        className="relative w-full max-w-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-zinc-900/90">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900/90">
           <div>
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <UploadCloud className="w-5 h-5 text-amber-400" />
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <UploadCloud className="w-5 h-5 text-amber-500" />
               <span>Upload Photos</span>
               {isOwner && (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
                   Official Store Photos
                 </span>
               )}
             </h2>
-            <p className="text-xs text-zinc-400 mt-0.5">
-              Add photos for <span className="text-zinc-200 font-medium">{storeName}</span>
+            <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+              Add photos for <span className="text-slate-800 dark:text-zinc-200 font-medium">{storeName}</span>
             </p>
           </div>
           <button
             onClick={handleClose}
             disabled={uploading}
-            className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors disabled:opacity-40"
+            className="p-1.5 text-slate-400 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-40"
           >
             <X className="w-5 h-5" />
           </button>
@@ -213,14 +213,14 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
         {/* Content */}
         <div className="p-6 overflow-y-auto space-y-4 flex-1">
           {error && (
-            <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs">
+            <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-700 dark:text-rose-400 text-xs">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
 
           {successMsg && (
-            <div className="flex items-center gap-2.5 p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs">
+            <div className="flex items-center gap-2.5 p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs">
               <CheckCircle2 className="w-4 h-4 shrink-0" />
               <span>{successMsg}</span>
             </div>
@@ -234,8 +234,8 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
             onClick={() => fileInputRef.current?.click()}
             className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center ${
               isDragging
-                ? 'border-amber-400 bg-amber-500/5'
-                : 'border-zinc-700/80 hover:border-zinc-600 bg-zinc-950/40 hover:bg-zinc-950/70'
+                ? 'border-amber-500 bg-amber-500/5'
+                : 'border-slate-300 dark:border-zinc-700/80 hover:border-slate-400 dark:hover:border-zinc-600 bg-slate-50/70 hover:bg-slate-100/80 dark:bg-zinc-950/40 dark:hover:bg-zinc-950/70'
             }`}
           >
             <input
@@ -247,13 +247,13 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
               className="hidden"
               disabled={uploading}
             />
-            <div className="w-12 h-12 rounded-full bg-zinc-800 flex items-center justify-center mb-3 text-amber-400">
+            <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center mb-3 text-amber-500">
               <ImageIcon className="w-6 h-6" />
             </div>
-            <p className="text-sm font-semibold text-white">
+            <p className="text-sm font-semibold text-slate-900 dark:text-white">
               Click to select or drag and drop images
             </p>
-            <p className="text-xs text-zinc-400 mt-1">
+            <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
               Supports JPEG, PNG, or WebP &bull; Up to 5 MB per file &bull; Max 5 photos
             </p>
           </div>
@@ -261,7 +261,7 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
           {/* Previews List */}
           {selectedFiles.length > 0 && (
             <div className="space-y-3">
-              <div className="flex items-center justify-between text-xs font-semibold text-zinc-400">
+              <div className="flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-zinc-400">
                 <span>Selected Photos ({selectedFiles.length} of {MAX_FILES})</span>
                 <button
                   type="button"
@@ -270,7 +270,7 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
                     setSelectedFiles([]);
                   }}
                   disabled={uploading}
-                  className="text-zinc-500 hover:text-rose-400 transition-colors"
+                  className="text-slate-400 hover:text-rose-500 dark:text-zinc-500 dark:hover:text-rose-400 transition-colors"
                 >
                   Clear all
                 </button>
@@ -280,9 +280,9 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
                 {selectedFiles.map((item, index) => (
                   <div
                     key={item.id}
-                    className="flex items-center gap-3 p-3 bg-zinc-950/60 border border-zinc-800 rounded-xl"
+                    className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-zinc-950/60 border border-slate-200 dark:border-zinc-800 rounded-xl"
                   >
-                    <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-zinc-900 shrink-0 border border-zinc-800">
+                    <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-slate-200 dark:bg-zinc-900 shrink-0 border border-slate-200 dark:border-zinc-800">
                       <img
                         src={item.previewUrl}
                         alt={`Selected preview ${index + 1}`}
@@ -292,10 +292,10 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
 
                     <div className="flex-1 min-w-0 space-y-1.5">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-medium text-white truncate max-w-[200px]">
+                        <span className="text-xs font-medium text-slate-900 dark:text-white truncate max-w-[200px]">
                           {item.file.name}
                         </span>
-                        <span className="text-[10px] text-zinc-500 shrink-0">
+                        <span className="text-[10px] text-slate-500 dark:text-zinc-500 shrink-0">
                           {(item.file.size / (1024 * 1024)).toFixed(2)} MB
                         </span>
                       </div>
@@ -306,7 +306,7 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
                         value={item.caption}
                         onChange={(e) => updateCaption(item.id, e.target.value)}
                         disabled={uploading}
-                        className="w-full text-xs px-2.5 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500/50"
+                        className="w-full text-xs px-2.5 py-1.5 bg-white dark:bg-zinc-900 border border-slate-300 dark:border-zinc-800 rounded-lg text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-amber-500"
                       />
                     </div>
 
@@ -314,7 +314,7 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
                       type="button"
                       onClick={() => removeFile(item.id)}
                       disabled={uploading}
-                      className="p-2 text-zinc-500 hover:text-rose-400 hover:bg-zinc-900 rounded-lg transition-colors shrink-0 disabled:opacity-40"
+                      className="p-2 text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:text-zinc-500 dark:hover:text-rose-400 dark:hover:bg-zinc-900 rounded-lg transition-colors shrink-0 disabled:opacity-40"
                       title="Remove image"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -328,14 +328,14 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
           {/* Upload Progress Bar */}
           {uploading && (
             <div className="space-y-1.5 pt-2">
-              <div className="flex justify-between text-xs text-zinc-400">
+              <div className="flex justify-between text-xs text-slate-600 dark:text-zinc-400">
                 <span className="flex items-center gap-1.5">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500" />
                   Uploading and validating photos...
                 </span>
                 <span>{uploadProgress}%</span>
               </div>
-              <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+              <div className="w-full h-1.5 bg-slate-200 dark:bg-zinc-800 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-amber-500 to-amber-400 transition-all duration-300"
                   style={{ width: `${uploadProgress}%` }}
@@ -346,12 +346,12 @@ export const PhotoUploadModal: React.FC<PhotoUploadModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-zinc-800 bg-zinc-900/90">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900/90">
           <button
             type="button"
             onClick={handleClose}
             disabled={uploading}
-            className="px-4 py-2 text-xs font-medium text-zinc-300 hover:text-white rounded-xl hover:bg-zinc-800 transition-colors disabled:opacity-40"
+            className="px-4 py-2 text-xs font-medium text-slate-700 hover:text-slate-900 dark:text-zinc-300 dark:hover:text-white rounded-xl hover:bg-slate-200 dark:hover:bg-zinc-800 transition-colors disabled:opacity-40"
           >
             Cancel
           </button>

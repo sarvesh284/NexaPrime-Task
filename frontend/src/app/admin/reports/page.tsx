@@ -431,11 +431,15 @@ export default function AdminReportsPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
                       {/* Photo Thumbnail */}
-                      <div className="relative aspect-video sm:aspect-square md:col-span-1 rounded-xl overflow-hidden bg-black border border-zinc-800">
+                      <div className="relative aspect-video sm:aspect-square md:col-span-1 rounded-xl overflow-hidden bg-black border border-zinc-800 flex items-center justify-center">
+                        <Camera className="w-8 h-8 text-zinc-700 absolute" />
                         <img
                           src={getAssetUrl(photo.url)}
                           alt={photo.caption || 'Reported photo thumbnail'}
-                          className="w-full h-full object-contain"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
+                          className="relative z-10 w-full h-full object-contain"
                         />
                       </div>
 

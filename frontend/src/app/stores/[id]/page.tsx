@@ -67,6 +67,11 @@ function StoreDetailContent() {
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [photosLoading, setPhotosLoading] = useState(false);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [coverFailed, setCoverFailed] = useState(false);
+
+  useEffect(() => {
+    setCoverFailed(false);
+  }, [store?.coverImage]);
 
   const fetchStore = useCallback(async () => {
     if (!storeId) return;
@@ -333,38 +338,39 @@ function StoreDetailContent() {
       {/* Back Link */}
       <Link
         href="/stores"
-        className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-400 hover:text-white transition-colors"
+        className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-white transition-colors"
       >
         <ArrowLeft className="w-3.5 h-3.5" />
         <span>Back to Store Directory</span>
       </Link>
 
       {/* Main Store Banner Card */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-3xl shadow-2xl relative overflow-hidden">
+      <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl shadow-md dark:shadow-2xl relative overflow-hidden transition-colors">
         {/* Cover Hero Banner */}
-        <div className="relative h-48 sm:h-64 w-full bg-zinc-950 overflow-hidden border-b border-zinc-800">
-          {store.coverImage ? (
+        <div className="relative h-48 sm:h-64 w-full bg-slate-100 dark:bg-zinc-950 overflow-hidden border-b border-slate-200 dark:border-zinc-800">
+          {store.coverImage && !coverFailed ? (
             <img
               src={getAssetUrl(store.coverImage)}
               alt={`${store.name} cover`}
+              onError={() => setCoverFailed(true)}
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 text-zinc-600">
-              <StoreIcon className="w-12 h-12 opacity-30 mb-2" />
-              <span className="text-xs font-semibold tracking-wider uppercase opacity-40">
+            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-r from-slate-100 via-slate-200/50 to-slate-100 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 text-slate-400 dark:text-zinc-600">
+              <StoreIcon className="w-12 h-12 opacity-40 mb-2" />
+              <span className="text-xs font-semibold tracking-wider uppercase opacity-60">
                 Community Rated Store
               </span>
             </div>
           )}
           {/* Ambient gradient scrim */}
-          <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-zinc-900/40 to-black/30" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20" />
 
           {/* Action on Hero */}
           <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
             <button
               onClick={handleUploadClick}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-black/60 hover:bg-black/80 text-white backdrop-blur-md border border-white/10 transition-colors shadow-lg"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-black/60 hover:bg-black/80 text-white backdrop-blur-md border border-white/20 transition-colors shadow-lg"
             >
               <Camera className="w-3.5 h-3.5 text-amber-400" />
               <span>{store.coverImage ? 'Add / Manage Photos' : 'Add Cover Photo'}</span>
@@ -373,35 +379,35 @@ function StoreDetailContent() {
         </div>
 
         <div className="p-6 sm:p-8">
-          <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 pb-6 border-b border-zinc-800">
+          <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 pb-6 border-b border-slate-200 dark:border-zinc-800">
           <div className="space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-950/80 text-emerald-300 border border-emerald-800/60">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
                 Verified Store
               </span>
               {store.category && (
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-800 text-zinc-300 border border-zinc-700">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700">
                   {store.category}
                 </span>
               )}
               {store.city && (
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-800/80 text-zinc-400 border border-zinc-700/60">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-zinc-800/80 text-slate-600 dark:text-zinc-400 border border-slate-200 dark:border-zinc-700/60">
                   {store.city}
                 </span>
               )}
               {store.myRating && (
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/30 flex items-center gap-1">
-                  <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                  <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
                   Your Rating: {store.myRating} ★
                 </span>
               )}
             </div>
 
-            <h1 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
+            <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
               <span>{store.name}</span>
               <button
                 onClick={handleToggleFavorite}
-                className="p-2 rounded-xl bg-zinc-800/80 hover:bg-zinc-800 text-zinc-400 hover:text-rose-400 border border-zinc-700 transition-colors"
+                className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800/80 dark:hover:bg-zinc-800 text-slate-500 hover:text-rose-500 dark:text-zinc-400 dark:hover:text-rose-400 border border-slate-200 dark:border-zinc-700 transition-colors"
                 title={store.isFavorite ? 'Remove from favorites' : 'Save to favorites'}
               >
                 <Heart
@@ -413,32 +419,32 @@ function StoreDetailContent() {
             </h1>
 
             {store.description && (
-              <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed max-w-2xl">
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-zinc-300 leading-relaxed max-w-2xl">
                 {store.description}
               </p>
             )}
 
-            <div className="flex flex-wrap items-center gap-4 text-xs text-zinc-400 pt-1">
+            <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 dark:text-zinc-400 pt-1">
               <div className="flex items-center gap-1.5">
-                <MapPin className="w-4 h-4 text-zinc-500 shrink-0" />
+                <MapPin className="w-4 h-4 text-slate-400 dark:text-zinc-500 shrink-0" />
                 <span>{store.address}</span>
               </div>
               {store.phone && (
                 <div className="flex items-center gap-1.5">
-                  <Phone className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-                  <a href={`tel:${store.phone}`} className="hover:text-amber-400 transition-colors">
+                  <Phone className="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500 shrink-0" />
+                  <a href={`tel:${store.phone}`} className="hover:text-amber-600 dark:hover:text-amber-400 transition-colors">
                     {store.phone}
                   </a>
                 </div>
               )}
               {store.website && (
                 <div className="flex items-center gap-1.5">
-                  <Globe className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+                  <Globe className="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500 shrink-0" />
                   <a
                     href={store.website.startsWith('http') ? store.website : `https://${store.website}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hover:text-amber-400 underline transition-colors"
+                    className="hover:text-amber-600 dark:hover:text-amber-400 underline transition-colors"
                   >
                     Visit Website
                   </a>
@@ -460,39 +466,39 @@ function StoreDetailContent() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
-          <div className="p-4 rounded-2xl bg-zinc-950/70 border border-zinc-800">
-            <p className="text-xs text-zinc-400 font-medium">Average Community Score</p>
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-zinc-950/70 border border-slate-200 dark:border-zinc-800">
+            <p className="text-xs text-slate-500 dark:text-zinc-400 font-medium">Average Community Score</p>
             <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-3xl font-black text-white">
+              <span className="text-3xl font-black text-slate-900 dark:text-white">
                 {store.averageRating > 0 ? store.averageRating.toFixed(1) : '0.0'}
               </span>
-              <span className="text-xs text-zinc-500 font-medium">/ 5.0</span>
+              <span className="text-xs text-slate-500 dark:text-zinc-500 font-medium">/ 5.0</span>
             </div>
             <div className="mt-1">
               <StarRating value={store.averageRating} size="md" />
             </div>
           </div>
 
-          <div className="p-4 rounded-2xl bg-zinc-950/70 border border-zinc-800">
-            <p className="text-xs text-zinc-400 font-medium">Total Reviews</p>
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-zinc-950/70 border border-slate-200 dark:border-zinc-800">
+            <p className="text-xs text-slate-500 dark:text-zinc-400 font-medium">Total Reviews</p>
             <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-3xl font-black text-white">{store.ratingCount}</span>
-              <span className="text-xs text-zinc-500 font-medium">ratings</span>
+              <span className="text-3xl font-black text-slate-900 dark:text-white">{store.ratingCount}</span>
+              <span className="text-xs text-slate-500 dark:text-zinc-500 font-medium">ratings</span>
             </div>
-            <p className="text-[11px] text-zinc-500 mt-1">
+            <p className="text-[11px] text-slate-500 dark:text-zinc-500 mt-1">
               {store.ratingCount === 0 ? 'Be the first user to submit a rating!' : 'Verified community feedback'}
             </p>
           </div>
 
-          <div className="p-4 rounded-2xl bg-zinc-950/70 border border-zinc-800">
-            <p className="text-xs text-zinc-400 font-medium">Your Score</p>
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-zinc-950/70 border border-slate-200 dark:border-zinc-800">
+            <p className="text-xs text-slate-500 dark:text-zinc-400 font-medium">Your Score</p>
             <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-3xl font-black text-amber-400">
+              <span className="text-3xl font-black text-amber-600 dark:text-amber-400">
                 {store.myRating ? `${store.myRating}.0` : '—'}
               </span>
-              {store.myRating && <span className="text-xs text-zinc-500 font-medium">/ 5.0</span>}
+              {store.myRating && <span className="text-xs text-slate-500 dark:text-zinc-500 font-medium">/ 5.0</span>}
             </div>
-            <p className="text-[11px] text-zinc-500 mt-1">
+            <p className="text-[11px] text-slate-500 dark:text-zinc-500 mt-1">
               {store.myRating ? 'You can update your review anytime' : 'Sign in as user to submit your rating'}
             </p>
           </div>
@@ -501,7 +507,7 @@ function StoreDetailContent() {
       </div>
 
       {/* Store Photo Gallery */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-xl">
+      <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-sm dark:shadow-xl transition-colors">
         <PhotoGallery
           storeId={store.id}
           storeName={store.name}
@@ -516,24 +522,24 @@ function StoreDetailContent() {
       </div>
 
       {/* Feature E: Star Rating Distribution Breakdown */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-xl">
-        <h3 className="text-base font-bold text-white mb-4">Rating Breakdown</h3>
+      <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm dark:shadow-xl transition-colors">
+        <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4">Rating Breakdown</h3>
         <div className="space-y-2.5">
           {[5, 4, 3, 2, 1].map((star) => {
             const data = distribution[star] || { count: 0, percentage: 0 };
             return (
               <div key={star} className="flex items-center gap-3 text-xs">
-                <div className="w-16 flex items-center gap-1 font-semibold text-zinc-300">
+                <div className="w-16 flex items-center gap-1 font-semibold text-slate-700 dark:text-zinc-300">
                   <span>{star}</span>
-                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
                 </div>
-                <div className="flex-1 h-3 rounded-full bg-zinc-800 overflow-hidden relative">
+                <div className="flex-1 h-3 rounded-full bg-slate-100 dark:bg-zinc-800 overflow-hidden relative">
                   <div
                     className="h-full bg-gradient-to-r from-amber-500 to-amber-400 transition-all duration-500 rounded-full"
                     style={{ width: `${data.percentage}%` }}
                   />
                 </div>
-                <div className="w-16 text-right text-zinc-400 font-medium">
+                <div className="w-16 text-right text-slate-500 dark:text-zinc-400 font-medium">
                   {data.count} ({data.percentage}%)
                 </div>
               </div>
@@ -543,24 +549,24 @@ function StoreDetailContent() {
       </div>
 
       {/* Feature B: Written Review Comments & Moderation Section */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-xl space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-800">
+      <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-sm dark:shadow-xl space-y-6 transition-colors">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-zinc-800">
           <div>
-            <h3 className="text-xl font-bold text-white flex items-center gap-2">
-              <MessageSquare className="w-5 h-5 text-amber-400" />
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-amber-500" />
               <span>Customer Reviews & Feedback</span>
             </h3>
-            <p className="text-xs text-zinc-400 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
               Verified community reviews for {store.name}
             </p>
           </div>
 
           <div className="flex items-center gap-2">
-            <label className="text-xs text-zinc-400 font-medium">Sort by:</label>
+            <label className="text-xs text-slate-500 dark:text-zinc-400 font-medium">Sort by:</label>
             <select
               value={reviewSort}
               onChange={(e) => setReviewSort(e.target.value as any)}
-              className="py-1.5 px-3 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 focus:outline-none focus:border-amber-400"
+              className="py-1.5 px-3 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-xs text-slate-800 dark:text-zinc-200 focus:outline-none focus:border-amber-500 shadow-sm"
             >
               <option value="newest">Newest First</option>
               <option value="oldest">Oldest First</option>
@@ -573,13 +579,13 @@ function StoreDetailContent() {
 
         {reviewsLoading ? (
           <div className="py-12 flex justify-center">
-            <Loader2 className="w-6 h-6 text-amber-400 animate-spin" />
+            <Loader2 className="w-6 h-6 text-amber-500 animate-spin" />
           </div>
         ) : reviews.length === 0 ? (
-          <div className="py-12 text-center text-zinc-500 space-y-2">
-            <MessageSquare className="w-10 h-10 mx-auto text-zinc-700" />
-            <p className="text-sm font-semibold text-zinc-400">No written reviews yet</p>
-            <p className="text-xs text-zinc-500">
+          <div className="py-12 text-center text-slate-400 dark:text-zinc-500 space-y-2">
+            <MessageSquare className="w-10 h-10 mx-auto text-slate-300 dark:text-zinc-700" />
+            <p className="text-sm font-semibold text-slate-600 dark:text-zinc-400">No written reviews yet</p>
+            <p className="text-xs text-slate-400 dark:text-zinc-500">
               Be the first customer to leave written feedback for this store!
             </p>
           </div>
@@ -588,16 +594,16 @@ function StoreDetailContent() {
             {reviews.map((rev) => (
               <div
                 key={rev.id}
-                className="p-5 rounded-2xl bg-zinc-950/60 border border-zinc-800/80 space-y-3 transition-colors hover:border-zinc-700"
+                className="p-5 rounded-2xl bg-slate-50 dark:bg-zinc-950/60 border border-slate-200 dark:border-zinc-800/80 space-y-3 transition-colors hover:border-slate-300 dark:hover:border-zinc-700"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-300">
+                    <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-zinc-800 border border-slate-300 dark:border-zinc-700 flex items-center justify-center text-slate-600 dark:text-zinc-300">
                       <UserIcon className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-white">{rev.user.name}</p>
-                      <div className="flex items-center gap-2 text-[10px] text-zinc-500">
+                      <p className="text-xs font-bold text-slate-900 dark:text-white">{rev.user.name}</p>
+                      <div className="flex items-center gap-2 text-[10px] text-slate-500 dark:text-zinc-500">
                         <Clock className="w-3 h-3" />
                         <span>{new Date(rev.createdAt).toLocaleDateString()}</span>
                       </div>
@@ -606,40 +612,40 @@ function StoreDetailContent() {
 
                   <div className="flex items-center gap-2">
                     <StarRating value={rev.value} size="sm" />
-                    <span className="text-xs font-bold text-amber-400">{rev.value}.0</span>
+                    <span className="text-xs font-bold text-amber-600 dark:text-amber-400">{rev.value}.0</span>
                   </div>
                 </div>
 
                 {rev.comment && (
-                  <p className="text-xs text-zinc-300 leading-relaxed pl-11">
+                  <p className="text-xs text-slate-700 dark:text-zinc-300 leading-relaxed pl-11">
                     {rev.comment}
                   </p>
                 )}
 
                 {rev.ownerReply && (
-                  <div className="ml-11 p-3.5 rounded-xl bg-zinc-900/90 border border-amber-500/25 space-y-1.5">
+                  <div className="ml-11 p-3.5 rounded-xl bg-amber-50/60 dark:bg-zinc-900/90 border border-amber-300/40 dark:border-amber-500/25 space-y-1.5">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold text-amber-400 flex items-center gap-1.5">
+                      <span className="font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
                         <StoreIcon className="w-3.5 h-3.5" />
                         Response from Owner
                       </span>
-                      <span className="text-[10px] text-zinc-500">
+                      <span className="text-[10px] text-slate-400 dark:text-zinc-500">
                         {new Date(rev.ownerReply.createdAt).toLocaleDateString()}
                       </span>
                     </div>
-                    <p className="text-xs text-zinc-300 leading-relaxed">
+                    <p className="text-xs text-slate-700 dark:text-zinc-300 leading-relaxed">
                       {rev.ownerReply.text}
                     </p>
                   </div>
                 )}
 
-                <div className="flex items-center justify-between pt-2 border-t border-zinc-900 pl-11">
+                <div className="flex items-center justify-between pt-2 border-t border-slate-200/80 dark:border-zinc-900 pl-11">
                   <button
                     onClick={() => handleToggleHelpful(rev.id)}
                     className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg transition-colors ${
                       rev.hasVotedHelpful
-                        ? 'bg-amber-500/10 text-amber-300 border border-amber-500/30'
-                        : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                        ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30'
+                        : 'text-slate-600 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-zinc-800'
                     }`}
                   >
                     <ThumbsUp className="w-3.5 h-3.5" />
@@ -648,7 +654,7 @@ function StoreDetailContent() {
 
                   <button
                     onClick={() => setReportingReviewId(rev.id)}
-                    className="flex items-center gap-1 text-[11px] text-zinc-500 hover:text-rose-400 transition-colors"
+                    className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-rose-500 dark:text-zinc-500 dark:hover:text-rose-400 transition-colors"
                   >
                     <Flag className="w-3 h-3" />
                     <span>Report</span>
@@ -662,16 +668,16 @@ function StoreDetailContent() {
 
       {/* Review Report Modal */}
       {reportingReviewId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
-          <div className="relative w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl p-6 text-white space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <ShieldAlert className="w-4 h-4 text-rose-400" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/75 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-md bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-2xl p-6 text-slate-900 dark:text-white space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-zinc-800">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <ShieldAlert className="w-4 h-4 text-rose-500" />
                 <span>Report Inappropriate Review</span>
               </h3>
               <button
                 onClick={() => setReportingReviewId(null)}
-                className="text-zinc-400 hover:text-white"
+                className="text-slate-400 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -679,13 +685,13 @@ function StoreDetailContent() {
 
             <form onSubmit={handleSubmitReport} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1">
                   Reason for reporting
                 </label>
                 <select
                   value={reportReason}
                   onChange={(e) => setReportReason(e.target.value as any)}
-                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white focus:outline-none focus:border-amber-400"
+                  className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
                 >
                   <option value="INAPPROPRIATE">Inappropriate / Obscene Content</option>
                   <option value="SPAM">Commercial Spam or Advertising</option>
@@ -696,7 +702,7 @@ function StoreDetailContent() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1">
                   Additional Details (Optional)
                 </label>
                 <textarea
@@ -705,7 +711,7 @@ function StoreDetailContent() {
                   maxLength={500}
                   rows={3}
                   placeholder="Explain why this review violates platform standards..."
-                  className="w-full p-3 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white focus:outline-none focus:border-amber-400 resize-none"
+                  className="w-full p-3 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 resize-none placeholder:text-slate-400 dark:placeholder:text-zinc-600"
                 />
               </div>
 
@@ -713,7 +719,7 @@ function StoreDetailContent() {
                 <button
                   type="button"
                   onClick={() => setReportingReviewId(null)}
-                  className="flex-1 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-medium text-zinc-300"
+                  className="flex-1 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-xs font-medium text-slate-700 dark:text-zinc-300"
                 >
                   Cancel
                 </button>

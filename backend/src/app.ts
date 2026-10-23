@@ -17,6 +17,7 @@ export const createApp = (): Application => {
     helmet({
       contentSecurityPolicy: false, // Allows Swagger UI to load its assets
       crossOriginEmbedderPolicy: false,
+      crossOriginResourcePolicy: { policy: 'cross-origin' }, // Allows images to be loaded cross-origin by frontend
     })
   );
 
@@ -56,8 +57,16 @@ export const createApp = (): Application => {
   // CSRF protection for state-changing endpoints
   app.use('/api', csrfProtection);
 
-  // Serve static uploaded assets
-  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+  // Serve static uploaded assets with cross-origin headers
+  app.use(
+    '/uploads',
+    (_req, res, next) => {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      next();
+    },
+    express.static(path.join(process.cwd(), 'uploads'))
+  );
 
   // Mount API v1
   app.use('/api/v1', apiRouter);

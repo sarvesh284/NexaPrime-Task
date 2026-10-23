@@ -405,6 +405,7 @@ export class AdminService {
         address: s.address,
         category: s.category || 'Retail',
         city: s.city || 'General',
+        coverImage: s.coverImage,
         isActive: s.isActive,
         averageRating: s.averageRating || 0,
         ratingCount: s.ratingCount || 0,

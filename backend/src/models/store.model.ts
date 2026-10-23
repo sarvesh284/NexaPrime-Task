@@ -11,6 +11,7 @@ export interface IStore extends Document {
   address: string;
   category: string;
   city: string;
+  state?: string;
   description?: string;
   phone?: string;
   website?: string;
@@ -18,6 +19,7 @@ export interface IStore extends Document {
   coverImage?: string;
   ownerId?: mongoose.Types.ObjectId;
   isActive: boolean;
+  isDemo?: boolean;
   averageRating?: number;
   ratingCount?: number;
   createdAt: Date;
@@ -79,8 +81,19 @@ const storeSchema = new Schema<IStore>(
       default: '',
     },
     coordinates: {
-      lat: { type: Number, default: 37.7749 },
-      lng: { type: Number, default: -122.4194 },
+      lat: { type: Number, required: false },
+      lng: { type: Number, required: false },
+    },
+    state: {
+      type: String,
+      default: 'Maharashtra',
+      trim: true,
+      index: true,
+    },
+    isDemo: {
+      type: Boolean,
+      default: false,
+      index: true,
     },
     coverImage: {
       type: String,

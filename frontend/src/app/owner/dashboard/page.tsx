@@ -913,18 +913,20 @@ export default function OwnerDashboardPage() {
               dashboard?.stores?.[0];
             return (
               <div className="relative rounded-2xl overflow-hidden border border-zinc-800 bg-zinc-950 p-6 flex flex-col md:flex-row items-center gap-6">
-                <div className="relative w-full md:w-56 h-36 rounded-xl overflow-hidden bg-zinc-900 border border-zinc-800 shrink-0">
-                  {currentStore?.coverImage ? (
+                <div className="relative w-full md:w-56 h-36 rounded-xl overflow-hidden bg-zinc-900 border border-zinc-800 shrink-0 flex items-center justify-center">
+                  <div className="absolute flex flex-col items-center justify-center text-zinc-600">
+                    <Camera className="w-8 h-8 opacity-30 mb-1" />
+                    <span className="text-[10px] uppercase font-semibold">Cover Photo</span>
+                  </div>
+                  {currentStore?.coverImage && (
                     <img
                       src={getAssetUrl(currentStore.coverImage)}
                       alt={`${currentStore.name} cover`}
-                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = 'none';
+                      }}
+                      className="relative z-10 w-full h-full object-cover"
                     />
-                  ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center text-zinc-600">
-                      <Camera className="w-8 h-8 opacity-30 mb-1" />
-                      <span className="text-[10px] uppercase font-semibold">No Cover Set</span>
-                    </div>
                   )}
                   {currentStore?.coverImage && (
                     <div className="absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500 text-zinc-950 shadow">
@@ -998,11 +1000,15 @@ export default function OwnerDashboardPage() {
                       key={photo.id}
                       className="group relative rounded-xl overflow-hidden bg-zinc-950 border border-zinc-800 hover:border-purple-500/40 transition-all flex flex-col justify-between"
                     >
-                      <div className="relative aspect-square w-full overflow-hidden bg-zinc-900">
+                      <div className="relative aspect-square w-full overflow-hidden bg-zinc-900 flex items-center justify-center">
+                        <Camera className="w-8 h-8 text-zinc-700 absolute" />
                         <img
                           src={getAssetUrl(photo.url)}
                           alt={photo.caption || 'Store photo'}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
+                          className="relative z-10 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                         <div className="absolute top-2 left-2 flex items-center gap-1">
                           {photo.isCover && (

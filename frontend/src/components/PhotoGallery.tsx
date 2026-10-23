@@ -58,6 +58,13 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
   // Delete confirmation
   const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null);
 
+  // Failed image handling (graceful fallback)
+  const [failedPhotoIds, setFailedPhotoIds] = useState<Record<string, boolean>>({});
+
+  const handleImageError = useCallback((photoId: string) => {
+    setFailedPhotoIds((prev) => ({ ...prev, [photoId]: true }));
+  }, []);
+
   const activePhoto = activePhotoIndex !== null ? photos[activePhotoIndex] : null;
 
   const nextPhoto = useCallback(() => {
@@ -153,25 +160,25 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
   return (
     <section className="space-y-4">
       {/* Section Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-zinc-800">
         <div>
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <Camera className="w-5 h-5 text-amber-400" />
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <Camera className="w-5 h-5 text-amber-500" />
             <span>Store Photos</span>
             {photos.length > 0 && (
-              <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700">
+              <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-400 border border-slate-200 dark:border-zinc-700">
                 {photos.length}
               </span>
             )}
           </h2>
-          <p className="text-xs text-zinc-400 mt-0.5">
+          <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
             Community and official photography for {storeName}
           </p>
         </div>
 
         <button
           onClick={onUploadClick}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 hover:text-amber-200 border border-amber-500/30 transition-all shadow-sm"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 hover:text-amber-800 dark:hover:text-amber-200 border border-amber-500/30 transition-all shadow-sm"
         >
           <Camera className="w-3.5 h-3.5" />
           <span>Add Photos</span>
@@ -184,7 +191,7 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
           {[...Array(4)].map((_, i) => (
             <div
               key={i}
-              className="aspect-square bg-zinc-900 border border-zinc-800 rounded-xl animate-pulse"
+              className="aspect-square bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl animate-pulse"
             />
           ))}
         </div>
@@ -192,12 +199,12 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
 
       {/* Empty State */}
       {!loading && photos.length === 0 && (
-        <div className="p-10 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 text-center flex flex-col items-center justify-center">
-          <div className="w-14 h-14 rounded-full bg-zinc-800/80 border border-zinc-700/60 flex items-center justify-center text-zinc-500 mb-3">
+        <div className="p-10 rounded-2xl bg-slate-50 dark:bg-zinc-900/60 border border-slate-200 dark:border-zinc-800/80 text-center flex flex-col items-center justify-center">
+          <div className="w-14 h-14 rounded-full bg-slate-200/80 dark:bg-zinc-800/80 border border-slate-300 dark:border-zinc-700/60 flex items-center justify-center text-slate-400 dark:text-zinc-500 mb-3">
             <Camera className="w-6 h-6 opacity-60" />
           </div>
-          <h3 className="text-sm font-semibold text-white">No photos yet</h3>
-          <p className="text-xs text-zinc-400 mt-1 max-w-sm">
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-white">No photos yet</h3>
+          <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1 max-w-sm">
             Be the first to share photos of {storeName} with the community!
           </p>
           <button
@@ -217,14 +224,24 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
             <div
               key={photo.id}
               onClick={() => setActivePhotoIndex(index)}
-              className="group relative aspect-square bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden cursor-pointer hover:border-amber-500/40 transition-all shadow-md"
+              className="group relative aspect-square bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl overflow-hidden cursor-pointer hover:border-amber-500/60 transition-all shadow-sm"
             >
-              <img
-                src={getAssetUrl(photo.url)}
-                alt={photo.caption || `${storeName} photo ${index + 1}`}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ease-out"
-                loading="lazy"
-              />
+              {!failedPhotoIds[photo.id] ? (
+                <img
+                  src={getAssetUrl(photo.url)}
+                  alt={photo.caption || `${storeName} photo ${index + 1}`}
+                  onError={() => handleImageError(photo.id)}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ease-out"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-slate-400 dark:text-zinc-500 p-2 text-center">
+                  <Camera className="w-7 h-7 opacity-30 mb-1" />
+                  <span className="text-[10px] text-slate-500 dark:text-zinc-400 font-medium line-clamp-1">
+                    {photo.caption || 'Store Photo'}
+                  </span>
+                </div>
+              )}
 
               {/* Hover Overlay */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2.5">
@@ -310,11 +327,22 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
 
             {/* Photo Display */}
             <div className="flex-1 flex items-center justify-center bg-black min-h-[300px] md:min-h-[500px] relative overflow-hidden">
-              <img
-                src={getAssetUrl(activePhoto.url)}
-                alt={activePhoto.caption || 'Store Photo Lightbox'}
-                className="max-h-[80vh] w-auto max-w-full object-contain"
-              />
+              {!failedPhotoIds[activePhoto.id] ? (
+                <img
+                  src={getAssetUrl(activePhoto.url)}
+                  alt={activePhoto.caption || 'Store Photo Lightbox'}
+                  onError={() => handleImageError(activePhoto.id)}
+                  className="max-h-[80vh] w-auto max-w-full object-contain"
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center text-zinc-500 p-8 text-center">
+                  <AlertCircle className="w-12 h-12 text-zinc-600 mb-2" />
+                  <p className="text-sm font-medium text-zinc-300">Image file unavailable</p>
+                  <p className="text-xs text-zinc-500 mt-1 max-w-xs">
+                    The requested image file could not be loaded from storage.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Photo Details Sidebar */}
@@ -444,18 +472,18 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
 
       {/* Delete Confirmation Modal */}
       {deletingPhotoId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-sm bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 space-y-4 shadow-xl">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-full bg-rose-500/10 text-rose-400">
+              <div className="p-2.5 rounded-full bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400">
                 <Trash2 className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-white">Delete Photo</h3>
-                <p className="text-xs text-zinc-400">This action cannot be undone.</p>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Delete Photo</h3>
+                <p className="text-xs text-slate-500 dark:text-zinc-400">This action cannot be undone.</p>
               </div>
             </div>
-            <p className="text-xs text-zinc-300">
+            <p className="text-xs text-slate-600 dark:text-zinc-300">
               Are you sure you want to permanently delete this photo from the store gallery?
             </p>
             <div className="flex items-center justify-end gap-2 pt-2">
@@ -463,7 +491,7 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
                 type="button"
                 onClick={() => setDeletingPhotoId(null)}
                 disabled={actionLoading}
-                className="px-3 py-1.5 text-xs text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800"
+                className="px-3 py-1.5 text-xs text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800"
               >
                 Cancel
               </button>
@@ -483,30 +511,30 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
 
       {/* Report Photo Modal */}
       {reportingPhotoId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
-              <div className="flex items-center gap-2 text-white font-bold text-sm">
-                <Flag className="w-4 h-4 text-rose-400" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 space-y-4 shadow-xl">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-zinc-800">
+              <div className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-sm">
+                <Flag className="w-4 h-4 text-rose-500" />
                 <span>Report Photo</span>
               </div>
               <button
                 onClick={() => setReportingPhotoId(null)}
-                className="text-zinc-500 hover:text-white"
+                className="text-slate-400 hover:text-slate-800 dark:text-zinc-500 dark:hover:text-white"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleReportSubmit} className="space-y-3">
               <div>
-                <label className="block text-xs font-medium text-zinc-300 mb-1">
+                <label className="block text-xs font-medium text-slate-700 dark:text-zinc-300 mb-1">
                   Reason for reporting
                 </label>
                 <select
                   value={reportReason}
                   onChange={(e) => setReportReason(e.target.value as any)}
-                  className="w-full text-xs px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:outline-none focus:border-amber-500/50"
+                  className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
                 >
                   <option value="INAPPROPRIATE">Inappropriate or offensive content</option>
                   <option value="SPAM">Spam or irrelevant advertisement</option>
@@ -517,7 +545,7 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-zinc-300 mb-1">
+                <label className="block text-xs font-medium text-slate-700 dark:text-zinc-300 mb-1">
                   Additional Details (Optional)
                 </label>
                 <textarea
@@ -525,7 +553,7 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
                   value={reportDetails}
                   onChange={(e) => setReportDetails(e.target.value)}
                   placeholder="Describe why this photo violates community guidelines..."
-                  className="w-full text-xs px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500/50"
+                  className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
@@ -534,7 +562,7 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
                   type="button"
                   onClick={() => setReportingPhotoId(null)}
                   disabled={isSubmittingReport}
-                  className="px-3 py-1.5 text-xs text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800"
+                  className="px-3 py-1.5 text-xs text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800"
                 >
                   Cancel
                 </button>

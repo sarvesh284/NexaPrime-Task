@@ -11,23 +11,50 @@ export interface StoredFileResult {
 }
 
 export class StorageService {
-  private static isCloudinaryConfigured(): boolean {
-    return Boolean(
-      env.CLOUDINARY_CLOUD_NAME &&
-      env.CLOUDINARY_API_KEY &&
-      env.CLOUDINARY_API_SECRET
-    );
+  private static parseCloudinaryConfig(): { cloud_name: string; api_key: string; api_secret: string } | null {
+    const cloudinaryUrl = env.CLOUDINARY_URL || process.env.CLOUDINARY_URL;
+    if (cloudinaryUrl) {
+      // Supports standard cloudinary://<api_key>:<api_secret>@<cloud_name>
+      const match = cloudinaryUrl.trim().match(/cloudinary:\/\/([^:]+):([^@]+)@(.+)/);
+      if (match) {
+        return {
+          api_key: match[1],
+          api_secret: match[2],
+          cloud_name: match[3],
+        };
+      }
+    }
+
+    if (env.CLOUDINARY_CLOUD_NAME && env.CLOUDINARY_API_KEY && env.CLOUDINARY_API_SECRET) {
+      return {
+        cloud_name: env.CLOUDINARY_CLOUD_NAME.trim(),
+        api_key: env.CLOUDINARY_API_KEY.trim(),
+        api_secret: env.CLOUDINARY_API_SECRET.trim(),
+      };
+    }
+
+    return null;
   }
 
-  private static initCloudinary(): void {
-    if (this.isCloudinaryConfigured()) {
+  public static isCloudinaryConfigured(): boolean {
+    if (process.env.NODE_ENV === 'test') {
+      return false;
+    }
+    return this.parseCloudinaryConfig() !== null;
+  }
+
+  private static initCloudinary(): boolean {
+    const config = this.parseCloudinaryConfig();
+    if (config) {
       cloudinary.config({
-        cloud_name: env.CLOUDINARY_CLOUD_NAME,
-        api_key: env.CLOUDINARY_API_KEY,
-        api_secret: env.CLOUDINARY_API_SECRET,
+        cloud_name: config.cloud_name,
+        api_key: config.api_key,
+        api_secret: config.api_secret,
         secure: true,
       });
+      return true;
     }
+    return false;
   }
 
   /**
@@ -42,6 +69,7 @@ export class StorageService {
     // 1. Managed Cloud Storage (Cloudinary)
     if (this.isCloudinaryConfigured()) {
       this.initCloudinary();
+      console.log(`[StorageService] Uploading file to Cloudinary (${folder})...`);
       return new Promise<StoredFileResult>((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
@@ -51,8 +79,10 @@ export class StorageService {
           },
           (error, result: UploadApiResponse | undefined) => {
             if (error || !result) {
+              console.error('[StorageService] Cloudinary upload error:', error);
               return reject(new Error(error?.message || 'Cloudinary upload failed'));
             }
+            console.log(`[StorageService] Cloudinary upload succeeded: ${result.secure_url}`);
             resolve({
               url: result.secure_url,
               storageKey: result.public_id,
@@ -64,7 +94,10 @@ export class StorageService {
       });
     }
 
-    // 2. Safe Local Storage Fallback (Production-conscious fallback)
+    // 2. Safe Local Storage Fallback (warn developer that cloud storage is not configured)
+    console.warn(
+      '[StorageService] Cloudinary credentials not configured in .env. Falling back to local disk storage. Set CLOUDINARY_URL or CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET in backend/.env for cloud-hosted images.'
+    );
     const uploadsDir = path.join(process.cwd(), 'uploads', folder);
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir, { recursive: true });

@@ -59,7 +59,7 @@ export const StarRating: React.FC<StarRatingProps> = ({
                     ? 'text-amber-400 fill-amber-400'
                     : isPartiallyFilled
                     ? 'text-amber-400 fill-amber-400/50'
-                    : 'text-zinc-600 fill-transparent'
+                    : 'text-slate-300 dark:text-zinc-700 fill-transparent'
                 }`}
               />
             </button>
@@ -68,7 +68,7 @@ export const StarRating: React.FC<StarRatingProps> = ({
       </div>
 
       {showValue && (
-        <span className="text-sm font-semibold text-zinc-300 ml-1">
+        <span className="text-sm font-semibold text-slate-700 dark:text-zinc-300 ml-1">
           {value > 0 ? value.toFixed(1) : 'No ratings'}
         </span>
       )}
