@@ -1,7 +1,10 @@
 import { ApiResponse } from '../types';
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+  process.env.NEXT_PUBLIC_API_URL ||
+  (process.env.NODE_ENV === 'production'
+    ? 'https://ratelocal.onrender.com/api/v1'
+    : 'http://localhost:5000/api/v1');
 
 export function getAssetUrl(url?: string): string {
   if (!url) return '';

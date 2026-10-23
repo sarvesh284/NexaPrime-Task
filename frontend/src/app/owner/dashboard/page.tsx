@@ -204,7 +204,11 @@ export default function OwnerDashboardPage() {
       if (endDate) queryParams.append('endDate', endDate);
       if (debouncedSearch) queryParams.append('search', debouncedSearch);
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+      const apiUrl =
+        process.env.NEXT_PUBLIC_API_URL ||
+        (process.env.NODE_ENV === 'production'
+          ? 'https://ratelocal.onrender.com/api/v1'
+          : 'http://localhost:5000/api/v1');
       const response = await fetch(`${apiUrl}/owner/ratings/export?${queryParams.toString()}`, {
         credentials: 'include',
         headers: { 'X-Requested-With': 'XMLHttpRequest' },
