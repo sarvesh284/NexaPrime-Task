@@ -6,6 +6,7 @@ import { MapPin, Star, Sparkles, ArrowRight, Heart, Store as StoreIcon, Camera }
 import { Store } from '../types';
 import { StarRating } from './StarRating';
 import { useAuth } from '../context/AuthContext';
+import { getAssetUrl } from '../lib/api';
 
 interface StoreCardProps {
   store: Store;
@@ -24,7 +25,7 @@ export const StoreCard: React.FC<StoreCardProps> = ({ store, onOpenRating, onTog
       <div className="relative h-36 w-full bg-zinc-950 overflow-hidden border-b border-zinc-800/80">
         {store.coverImage && !imageFailed ? (
           <img
-            src={store.coverImage}
+            src={getAssetUrl(store.coverImage)}
             alt={store.name}
             onError={() => setImageFailed(true)}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"

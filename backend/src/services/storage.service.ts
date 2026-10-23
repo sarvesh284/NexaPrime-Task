@@ -76,10 +76,11 @@ export class StorageService {
 
     await fs.promises.writeFile(filePath, fileBuffer);
 
-    const relativeUrl = `/uploads/${folder}/${safeFilename}`;
+    const backendHost = process.env.BACKEND_URL || `http://localhost:${env.PORT || 5000}`;
+    const fileUrl = `${backendHost}/uploads/${folder}/${safeFilename}`;
 
     return {
-      url: relativeUrl,
+      url: fileUrl,
       storageKey: `${folder}/${safeFilename}`,
       storageProvider: 'local',
     };

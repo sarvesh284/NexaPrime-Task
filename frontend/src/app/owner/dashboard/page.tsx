@@ -28,7 +28,7 @@ import {
   UploadCloud,
   Check,
 } from 'lucide-react';
-import { api } from '../../../lib/api';
+import { api, getAssetUrl } from '../../../lib/api';
 import {
   OwnerDashboardData,
   RatingItem,
@@ -916,7 +916,7 @@ export default function OwnerDashboardPage() {
                 <div className="relative w-full md:w-56 h-36 rounded-xl overflow-hidden bg-zinc-900 border border-zinc-800 shrink-0">
                   {currentStore?.coverImage ? (
                     <img
-                      src={currentStore.coverImage}
+                      src={getAssetUrl(currentStore.coverImage)}
                       alt={`${currentStore.name} cover`}
                       className="w-full h-full object-cover"
                     />
@@ -1000,7 +1000,7 @@ export default function OwnerDashboardPage() {
                     >
                       <div className="relative aspect-square w-full overflow-hidden bg-zinc-900">
                         <img
-                          src={photo.url}
+                          src={getAssetUrl(photo.url)}
                           alt={photo.caption || 'Store photo'}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />

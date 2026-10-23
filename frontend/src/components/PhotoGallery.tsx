@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { PhotoItem } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { getAssetUrl } from '../lib/api';
 
 interface PhotoGalleryProps {
   storeId: string;
@@ -219,7 +220,7 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
               className="group relative aspect-square bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden cursor-pointer hover:border-amber-500/40 transition-all shadow-md"
             >
               <img
-                src={photo.url}
+                src={getAssetUrl(photo.url)}
                 alt={photo.caption || `${storeName} photo ${index + 1}`}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ease-out"
                 loading="lazy"
@@ -310,7 +311,7 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
             {/* Photo Display */}
             <div className="flex-1 flex items-center justify-center bg-black min-h-[300px] md:min-h-[500px] relative overflow-hidden">
               <img
-                src={activePhoto.url}
+                src={getAssetUrl(activePhoto.url)}
                 alt={activePhoto.caption || 'Store Photo Lightbox'}
                 className="max-h-[80vh] w-auto max-w-full object-contain"
               />

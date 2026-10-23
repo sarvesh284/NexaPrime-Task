@@ -17,7 +17,7 @@ import {
   ShieldCheck,
   AlertCircle,
 } from 'lucide-react';
-import { api, ApiError } from '../../../lib/api';
+import { api, ApiError, getAssetUrl } from '../../../lib/api';
 import { AdminReport, Pagination, PhotoItem } from '../../../types';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../components/Toast';
@@ -433,7 +433,7 @@ export default function AdminReportsPage() {
                       {/* Photo Thumbnail */}
                       <div className="relative aspect-video sm:aspect-square md:col-span-1 rounded-xl overflow-hidden bg-black border border-zinc-800">
                         <img
-                          src={photo.url}
+                          src={getAssetUrl(photo.url)}
                           alt={photo.caption || 'Reported photo thumbnail'}
                           className="w-full h-full object-contain"
                         />

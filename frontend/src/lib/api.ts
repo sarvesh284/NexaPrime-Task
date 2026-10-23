@@ -3,6 +3,15 @@ import { ApiResponse } from '../types';
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
 
+export function getAssetUrl(url?: string): string {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  const backendOrigin = API_BASE_URL.replace(/\/api\/v1\/?$/, '');
+  return `${backendOrigin}${url.startsWith('/') ? '' : '/'}${url}`;
+}
+
 export class ApiError extends Error {
   code: string;
   statusCode: number;

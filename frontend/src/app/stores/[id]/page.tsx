@@ -23,7 +23,7 @@ import {
   Store as StoreIcon,
   Camera,
 } from 'lucide-react';
-import { api, ApiError } from '../../../lib/api';
+import { api, ApiError, getAssetUrl } from '../../../lib/api';
 import { Store, StoreStats, Review, RatingDistribution, PhotoItem } from '../../../types';
 import { StarRating } from '../../../components/StarRating';
 import { RatingModal } from '../../../components/RatingModal';
@@ -345,7 +345,7 @@ function StoreDetailContent() {
         <div className="relative h-48 sm:h-64 w-full bg-zinc-950 overflow-hidden border-b border-zinc-800">
           {store.coverImage ? (
             <img
-              src={store.coverImage}
+              src={getAssetUrl(store.coverImage)}
               alt={`${store.name} cover`}
               className="w-full h-full object-cover"
             />
