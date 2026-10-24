@@ -7,8 +7,8 @@ import { api } from '../lib/api';
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (data: { name: string; email: string; password: string; address: string }) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
+  register: (data: { name: string; email: string; password: string; address: string }) => Promise<User>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -52,24 +52,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<User> => {
     const res = await api.post<{ user: User; token?: string }>('/auth/login', { email, password });
     if (res.data?.token && typeof window !== 'undefined') {
       localStorage.setItem('auth_token', res.data.token);
     }
     if (res.data?.user) {
       setUser(res.data.user);
+      return res.data.user;
     }
+    throw new Error('User profile data not returned by authentication service.');
   };
 
-  const register = async (data: { name: string; email: string; password: string; address: string }) => {
+  const register = async (data: { name: string; email: string; password: string; address: string }): Promise<User> => {
     const res = await api.post<{ user: User; token?: string }>('/auth/register', data);
     if (res.data?.token && typeof window !== 'undefined') {
       localStorage.setItem('auth_token', res.data.token);
     }
     if (res.data?.user) {
       setUser(res.data.user);
+      return res.data.user;
     }
+    throw new Error('User profile data not returned by registration service.');
   };
 
   const logout = async () => {

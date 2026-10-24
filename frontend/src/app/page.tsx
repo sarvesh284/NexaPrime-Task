@@ -111,7 +111,14 @@ export default function HomePage() {
             </Link>
 
             {user ? (
-              user.role === 'STORE_OWNER' ? (
+              user.role === 'ADMIN' ? (
+                <Link
+                  href="/admin/dashboard"
+                  className="w-full sm:w-auto py-3.5 px-7 rounded-xl border border-rose-300 dark:border-rose-900 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/80 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-200 font-semibold text-sm transition-colors shadow-sm"
+                >
+                  Open Admin Dashboard
+                </Link>
+              ) : user.role === 'STORE_OWNER' ? (
                 <Link
                   href="/owner/dashboard"
                   className="w-full sm:w-auto py-3.5 px-7 rounded-xl border border-slate-300 dark:border-zinc-700 bg-white hover:bg-slate-50 dark:bg-zinc-900/80 dark:hover:bg-zinc-800 text-slate-800 dark:text-zinc-200 font-semibold text-sm transition-colors shadow-sm"

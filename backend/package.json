@@ -11,6 +11,8 @@
     "seed": "tsx src/scripts/seed.ts",
     "seed:maharashtra": "tsx src/scripts/seedMaharashtra.ts",
     "seed:maharashtra:clean": "tsx src/scripts/seedMaharashtra.ts --clean",
+    "seed:demo": "tsx src/scripts/seedDemoRatings.ts",
+    "seed:demo:clean": "tsx src/scripts/seedDemoRatings.ts --clean",
     "test": "vitest run --fileParallelism=false",
     "test:watch": "vitest --fileParallelism=false",
     "test:coverage": "vitest run --fileParallelism=false --coverage",
