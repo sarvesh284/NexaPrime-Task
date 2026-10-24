@@ -8,7 +8,6 @@ import { NotificationModel } from '../src/models/notification.model';
 import { hashPassword } from '../src/utils/password';
 
 describe('Extended Platform Features (Owner Replies, History, Notifications, Trending, Analytics, Login History)', () => {
-  let adminCookie: string[];
   let owner1Cookie: string[];
   let owner2Cookie: string[];
   let userCookie: string[];
@@ -20,22 +19,6 @@ describe('Extended Platform Features (Owner Replies, History, Notifications, Tre
 
   beforeEach(async () => {
     const passwordHash = await hashPassword('Password@123');
-
-    // Admin
-    await UserModel.create({
-      name: 'System Admin Testing User Account',
-      email: 'admin.extended@example.com',
-      address: '100 Infinite Loop, Cupertino, CA',
-      passwordHash,
-      role: 'ADMIN',
-      isActive: true,
-      isEmailVerified: true,
-    });
-    const adminLogin = await request(app).post('/api/v1/auth/login').send({
-      email: 'admin.extended@example.com',
-      password: 'Password@123',
-    });
-    adminCookie = adminLogin.headers['set-cookie'];
 
     // Owner 1
     const owner1 = await UserModel.create({
@@ -271,18 +254,5 @@ describe('Extended Platform Features (Owner Replies, History, Notifications, Tre
     expect(loginHistoryRes.status).toBe(200);
     expect(loginHistoryRes.body.data.loginHistory.length).toBeGreaterThan(0);
     expect(loginHistoryRes.body.data.loginHistory[0].status).toBe('SUCCESS');
-  });
-
-  it('returns platform analytics with user growth, store trends, and top stores for admin (A3)', async () => {
-    const analyticsRes = await request(app)
-      .get('/api/v1/admin/analytics')
-      .set('Cookie', adminCookie);
-
-    expect(analyticsRes.status).toBe(200);
-    expect(analyticsRes.body.data.analytics.userGrowth).toBeDefined();
-    expect(analyticsRes.body.data.analytics.storeGrowth).toBeDefined();
-    expect(analyticsRes.body.data.analytics.ratingTrends).toBeDefined();
-    expect(analyticsRes.body.data.analytics.mostRatedStores).toBeDefined();
-    expect(analyticsRes.body.data.analytics.highestRatedStores).toBeDefined();
   });
 });

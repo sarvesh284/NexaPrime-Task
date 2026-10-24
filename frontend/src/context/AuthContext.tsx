@@ -1,14 +1,14 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { User } from '../types';
+import { User, UserRole } from '../types';
 import { api } from '../lib/api';
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<User>;
-  register: (data: { name: string; email: string; password: string; address: string }) => Promise<User>;
+  register: (data: { name: string; email: string; password: string; address: string; role?: UserRole }) => Promise<User>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -64,7 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     throw new Error('User profile data not returned by authentication service.');
   };
 
-  const register = async (data: { name: string; email: string; password: string; address: string }): Promise<User> => {
+  const register = async (data: { name: string; email: string; password: string; address: string; role?: UserRole }): Promise<User> => {
     const res = await api.post<{ user: User; token?: string }>('/auth/register', data);
     if (res.data?.token && typeof window !== 'undefined') {
       localStorage.setItem('auth_token', res.data.token);

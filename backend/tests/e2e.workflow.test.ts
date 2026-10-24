@@ -8,31 +8,12 @@ import { emailService } from '../src/services/email.service';
 import { hashPassword } from '../src/utils/password';
 
 describe('End-to-End Platform Core Workflows (Integration)', () => {
-  it('executes the complete full-stack platform lifecycle from registration to moderation', async () => {
+  it('executes the complete full-stack platform lifecycle between store owners and customers', async () => {
     const initialPassword = 'Password@123';
     const newPassword = 'NewSecret@123';
     const passwordHash = await hashPassword(initialPassword);
 
-    // 1. Provision Platform Administrator
-    const admin = await UserModel.create({
-      name: 'Workflow Administrator Account',
-      email: 'workflow.admin@example.com',
-      address: '100 Infinite Loop, Cupertino, CA',
-      passwordHash,
-      role: 'ADMIN',
-      isActive: true,
-      isEmailVerified: true,
-      tokenVersion: 0,
-    });
-
-    const adminLogin = await request(app).post('/api/v1/auth/login').send({
-      email: 'workflow.admin@example.com',
-      password: initialPassword,
-    });
-    expect(adminLogin.status).toBe(200);
-    const adminCookie = adminLogin.headers['set-cookie'];
-
-    // 2. Provision Store Owner
+    // 1. Provision Store Owner
     const owner = await UserModel.create({
       name: 'Workflow Merchant Owner Account',
       email: 'workflow.owner@example.com',
@@ -51,24 +32,19 @@ describe('End-to-End Platform Core Workflows (Integration)', () => {
     expect(ownerLogin.status).toBe(200);
     const ownerCookie = ownerLogin.headers['set-cookie'];
 
-    // 3. Admin creates store and assigns to owner
-    const createStoreRes = await request(app)
-      .post('/api/v1/admin/stores')
-      .set('Cookie', adminCookie)
-      .send({
-        name: 'Workflow Gourmet Roasters',
-        email: 'info@workflowroasters.com',
-        address: '555 Coffee Mill Street, Seattle, WA',
-        category: 'Cafe',
-        city: 'Seattle',
-        ownerId: owner._id.toString(),
-      });
+    // 2. Store is created and owned by owner
+    const store = await StoreModel.create({
+      name: 'Workflow Gourmet Roasters',
+      email: 'info@workflowroasters.com',
+      address: '555 Coffee Mill Street, Seattle, WA',
+      category: 'Cafe',
+      city: 'Seattle',
+      ownerId: owner._id,
+      isActive: true,
+    });
+    const createdStoreId = store._id.toString();
 
-    expect(createStoreRes.status).toBe(201);
-    const createdStoreId = createStoreRes.body.data.store.id;
-    expect(createdStoreId).toBeDefined();
-
-    // 4. Normal user registers
+    // 3. Normal user registers
     const userEmail = 'workflow.user@example.com';
     const registerRes = await request(app).post('/api/v1/auth/register').send({
       name: 'Workflow Test Customer Consumer',
@@ -81,7 +57,7 @@ describe('End-to-End Platform Core Workflows (Integration)', () => {
     expect(registerRes.body.data.user.role).toBe('USER');
     const userCookie = registerRes.headers['set-cookie'];
 
-    // 5. User discovers store and bookmarks to favorites
+    // 4. User discovers store and bookmarks to favorites
     const dirRes = await request(app)
       .get('/api/v1/stores?category=Cafe')
       .set('Cookie', userCookie);
@@ -95,7 +71,7 @@ describe('End-to-End Platform Core Workflows (Integration)', () => {
     expect(favRes.status).toBe(200);
     expect(favRes.body.data.isFavorite).toBe(true);
 
-    // 6. User submits 5-star rating with written comment
+    // 5. User submits 5-star rating with written comment
     const ratingRes = await request(app)
       .put(`/api/v1/stores/${createdStoreId}/rating`)
       .set('Cookie', userCookie)
@@ -107,7 +83,7 @@ describe('End-to-End Platform Core Workflows (Integration)', () => {
     expect(ratingRes.body.data.rating.value).toBe(5);
     const createdRatingId = ratingRes.body.data.rating.id;
 
-    // 7. Store Owner inspects dashboard analytics and exports CSV
+    // 6. Store Owner inspects dashboard analytics and exports CSV
     const dashRes = await request(app)
       .get('/api/v1/owner/dashboard')
       .set('Cookie', ownerCookie);
@@ -121,50 +97,14 @@ describe('End-to-End Platform Core Workflows (Integration)', () => {
     expect(csvRes.status).toBe(200);
     expect(csvRes.text).toContain('Workflow Gourmet Roasters');
 
-    // 8. Second user reports the review, and Admin moderates it
-    const reporter = await UserModel.create({
-      name: 'Second Reporter Customer Account',
-      email: 'reporter.workflow@example.com',
-      address: '888 Bystander Lane, Seattle, WA',
-      passwordHash,
-      role: 'USER',
-      isActive: true,
-      isEmailVerified: true,
-      tokenVersion: 0,
-    });
+    // 7. Store Owner replies to the rating
+    const replyRes = await request(app)
+      .post(`/api/v1/owner/ratings/${createdRatingId}/reply`)
+      .set('Cookie', ownerCookie)
+      .send({ reply: 'Thank you for your wonderful review! We take pride in our coffee.' });
+    expect(replyRes.status).toBe(200);
 
-    const reporterLogin = await request(app).post('/api/v1/auth/login').send({
-      email: 'reporter.workflow@example.com',
-      password: initialPassword,
-    });
-    const reporterCookie = reporterLogin.headers['set-cookie'];
-
-    const reportRes = await request(app)
-      .post(`/api/v1/stores/reviews/${createdRatingId}/report`)
-      .set('Cookie', reporterCookie)
-      .send({
-        reason: 'SPAM',
-        details: 'Review seems duplicate or bot generated.',
-      });
-    expect(reportRes.status).toBe(201);
-    const createdReportId = reportRes.body.data.reportId;
-
-    const modRes = await request(app)
-      .post(`/api/v1/admin/reports/${createdReportId}/moderate`)
-      .set('Cookie', adminCookie)
-      .send({
-        action: 'HIDE_REVIEW',
-        notes: 'Confirmed promotional content',
-      });
-    expect(modRes.status).toBe(200);
-    expect(modRes.body.data.ratingStatus).toBe('HIDDEN');
-
-    // Store statistics must now exclude the hidden review
-    const updatedStore = await StoreModel.findById(createdStoreId);
-    expect(updatedStore?.ratingCount).toBe(0);
-    expect(updatedStore?.averageRating).toBe(0);
-
-    // 9. Password Reset & Email Verification lifecycle
+    // 8. Password Reset & Email Verification lifecycle
     const forgotRes = await request(app)
       .post('/api/v1/auth/forgot-password')
       .send({ email: userEmail });

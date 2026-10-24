@@ -1,6 +1,6 @@
 import { Request } from 'express';
 
-export type UserRole = 'USER' | 'STORE_OWNER' | 'ADMIN';
+export type UserRole = 'USER' | 'STORE_OWNER';
 
 export interface IUserPayload {
   userId: string;

@@ -31,12 +31,12 @@ describe('Authentication & User Management APIs', () => {
     expect(cookies[0]).toMatch(/HttpOnly/i);
   });
 
-  it('rejects registration if name is shorter than 20 characters', async () => {
+  it('rejects registration if name is shorter than 2 characters', async () => {
     const res = await request(app)
       .post('/api/v1/auth/register')
       .send({
         ...validUserPayload,
-        name: 'Short Name', // < 20 chars
+        name: 'A', // < 2 chars
       });
 
     expect(res.status).toBe(400);
@@ -100,20 +100,102 @@ describe('Authentication & User Management APIs', () => {
     expect(res.body.success).toBe(false);
   });
 
-  it('strictly ignores any client-supplied role to prevent privilege escalation', async () => {
+  it('allows registration as STORE_OWNER and verifies database persistence and login role', async () => {
     const res = await request(app)
       .post('/api/v1/auth/register')
       .send({
         ...validUserPayload,
-        email: 'attacker@example.com',
-        role: 'STORE_OWNER', // Attempting privilege escalation
+        email: 'merchant.owner@example.com',
+        role: 'STORE_OWNER',
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.user.role).toBe('STORE_OWNER');
+
+    // 1. Verify persisted in MongoDB
+    const createdInDb = await UserModel.findOne({ email: 'merchant.owner@example.com' });
+    expect(createdInDb).toBeDefined();
+    expect(createdInDb?.role).toBe('STORE_OWNER');
+
+    // 2. Verify subsequent login returns persisted STORE_OWNER role
+    const loginRes = await request(app)
+      .post('/api/v1/auth/login')
+      .send({
+        email: 'merchant.owner@example.com',
+        password: validUserPayload.password,
+      });
+
+    expect(loginRes.status).toBe(200);
+    expect(loginRes.body.data.user.role).toBe('STORE_OWNER');
+
+    // 3. Verify /auth/me returns the persisted STORE_OWNER role
+    const cookie = loginRes.headers['set-cookie'];
+    const meRes = await request(app)
+      .get('/api/v1/auth/me')
+      .set('Cookie', cookie);
+    expect(meRes.status).toBe(200);
+    expect(meRes.body.data.user.role).toBe('STORE_OWNER');
+  });
+
+  it('allows registration as USER (Customer) and verifies database persistence and login role', async () => {
+    const res = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        ...validUserPayload,
+        email: 'normal.customer@example.com',
+        role: 'USER',
       });
 
     expect(res.status).toBe(201);
     expect(res.body.data.user.role).toBe('USER');
 
-    const createdInDb = await UserModel.findOne({ email: 'attacker@example.com' });
+    // 1. Verify persisted in MongoDB
+    const createdInDb = await UserModel.findOne({ email: 'normal.customer@example.com' });
+    expect(createdInDb).toBeDefined();
     expect(createdInDb?.role).toBe('USER');
+
+    // 2. Verify subsequent login returns persisted USER role
+    const loginRes = await request(app)
+      .post('/api/v1/auth/login')
+      .send({
+        email: 'normal.customer@example.com',
+        password: validUserPayload.password,
+      });
+
+    expect(loginRes.status).toBe(200);
+    expect(loginRes.body.data.user.role).toBe('USER');
+
+    // 3. Verify /auth/me returns persisted USER role
+    const userCookie = loginRes.headers['set-cookie'];
+    const meRes = await request(app)
+      .get('/api/v1/auth/me')
+      .set('Cookie', userCookie);
+    expect(meRes.status).toBe(200);
+    expect(meRes.body.data.user.role).toBe('USER');
+  });
+
+  it('rejects registration with invalid or obsolete roles like ADMIN or arbitrary roles', async () => {
+    const resAdmin = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        ...validUserPayload,
+        email: 'attacker@example.com',
+        role: 'ADMIN',
+      });
+
+    expect(resAdmin.status).toBe(400);
+    expect(resAdmin.body.success).toBe(false);
+
+    const resArbitrary = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        ...validUserPayload,
+        email: 'attacker2@example.com',
+        role: 'SUPERUSER',
+      });
+
+    expect(resArbitrary.status).toBe(400);
+    expect(resArbitrary.body.success).toBe(false);
   });
 
   it('successfully logs in with valid credentials', async () => {

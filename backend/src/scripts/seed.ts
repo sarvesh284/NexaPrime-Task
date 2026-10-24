@@ -26,13 +26,13 @@ export const seedDatabase = async () => {
   const defaultPassword = 'Password@123';
   const passwordHash = await hashPassword(defaultPassword);
 
-  // 1. Create Platform Admin
-  const admin = await UserModel.create({
-    name: 'Platform Senior Administrator',
-    email: 'sarvesh.admin@example.com',
+  // 1. Create Second Store Owner
+  const coOwner = await UserModel.create({
+    name: 'Co-Owner Enterprise Partner',
+    email: 'sarvesh.coowner@example.com',
     address: '100 Infinite Loop Suite 500, Cupertino, CA',
     passwordHash,
-    role: 'ADMIN',
+    role: 'STORE_OWNER',
     isActive: true,
     isEmailVerified: true,
     tokenVersion: 1,
@@ -84,7 +84,7 @@ export const seedDatabase = async () => {
     tokenVersion: 1,
   });
 
-  console.log('👥 Admin, Owner, and Users seeded successfully.');
+  console.log('👥 Owners and Users seeded successfully.');
 
   // 4. Create Stores
   const store1 = await StoreModel.create({
@@ -232,7 +232,7 @@ export const seedDatabase = async () => {
     helpfulCount: 0,
   });
 
-  // 6. Seed a sample Report for Admin Moderation
+  // 6. Seed a sample Report
   await ReportModel.create({
     ratingId: flaggedRating._id,
     reporterId: user1._id,
@@ -241,11 +241,11 @@ export const seedDatabase = async () => {
     status: 'PENDING',
   });
 
-  // 7. Initial Admin Audit Log
+  // 7. Initial System Audit Log
   await AuditLogModel.create({
-    actorId: admin._id,
-    actorEmail: admin.email,
-    actorRole: 'ADMIN',
+    actorId: coOwner._id,
+    actorEmail: coOwner.email,
+    actorRole: 'STORE_OWNER',
     action: 'SYSTEM_SEED_INITIALIZATION',
     targetType: 'SYSTEM',
     targetId: 'INIT',
@@ -270,20 +270,11 @@ export const seedDatabase = async () => {
       link: '/owner/dashboard',
       isRead: false,
     },
-    {
-      userId: admin._id,
-      type: 'REPORT_RESOLVED',
-      title: 'New Review Report Submitted',
-      message: 'A new user report is pending moderation review in the moderation queue.',
-      link: '/admin/reports',
-      isRead: false,
-    },
   ]);
 
-  console.log('⭐ Ratings, reviews, moderation reports, and notifications seeded.');
+  console.log('⭐ Ratings, reviews, and notifications seeded.');
   console.log('🎉 Seeding completed successfully!');
   console.log('\n--- DEMO CREDENTIALS ---');
-  console.log('Admin:       sarvesh.admin@example.com / Password@123');
   console.log('Store Owner: sarvesh.owner@example.com / Password@123');
   console.log('Normal User: sarvesh.user@example.com  / Password@123');
   console.log('Reviewer:    reviewer@example.com      / Password@123');

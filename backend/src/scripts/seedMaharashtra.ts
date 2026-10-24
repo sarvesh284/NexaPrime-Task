@@ -482,7 +482,9 @@ export const MAHARASHTRA_SAMPLE_STORES: DemoStoreSeedData[] = [
 
 export const seedMaharashtraStores = async () => {
   console.log('🇮🇳 Starting Maharashtra Sample Stores & Photos Seeding...');
-  await connectDatabase();
+  if (mongoose.connection.readyState === 0) {
+    await connectDatabase();
+  }
 
   // Find demo users for review association
   const users = await UserModel.find({

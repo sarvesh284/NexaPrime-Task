@@ -1,4 +1,4 @@
-export type UserRole = 'USER' | 'STORE_OWNER' | 'ADMIN';
+export type UserRole = 'USER' | 'STORE_OWNER';
 
 export interface User {
   id: string;
@@ -111,36 +111,6 @@ export interface UserRatingHistoryItem {
   updatedAt: string;
 }
 
-export interface AdminPlatformAnalytics {
-  userGrowth: { date: string; count: number }[];
-  storeGrowth: { date: string; count: number }[];
-  ratingTrends: { date: string; count: number; averageRating: number }[];
-  mostRatedStores: {
-    id: string;
-    name: string;
-    category: string;
-    city: string;
-    averageRating: number;
-    ratingCount: number;
-  }[];
-  highestRatedStores: {
-    id: string;
-    name: string;
-    category: string;
-    city: string;
-    averageRating: number;
-    ratingCount: number;
-  }[];
-  distribution: Record<number, number>;
-  totalRatings: number;
-  accountHealth: {
-    activeUsers: number;
-    inactiveUsers: number;
-    activeStores: number;
-    inactiveStores: number;
-  };
-}
-
 export interface LoginHistoryEntry {
   ip: string;
   userAgent: string;
@@ -195,83 +165,6 @@ export interface OwnerAnalyticsData {
   distribution: Record<number, number>;
   dailyTrends: DailyTrend[];
   storeComparisons: StoreComparison[];
-}
-
-export interface AdminKpis {
-  totalUsers: number;
-  totalStoreOwners: number;
-  totalActiveStores: number;
-  totalInactiveStores: number;
-  totalStores: number;
-  totalRatings: number;
-  overallPlatformRating: number;
-  pendingReportsCount: number;
-}
-
-export interface AdminUser {
-  id: string;
-  name: string;
-  email: string;
-  address: string;
-  role: UserRole;
-  isActive: boolean;
-  isEmailVerified: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface AdminStore {
-  id: string;
-  name: string;
-  email?: string;
-  address: string;
-  category: string;
-  city: string;
-  isActive: boolean;
-  averageRating: number;
-  ratingCount: number;
-  createdAt: string;
-  owner?: {
-    id: string;
-    name: string;
-    email: string;
-  } | null;
-}
-
-export interface AdminReport {
-  id: string;
-  reason: 'INAPPROPRIATE' | 'SPAM' | 'OFFENSIVE' | 'SUSPICIOUS' | 'OTHER';
-  details?: string;
-  status: 'PENDING' | 'RESOLVED_HIDDEN' | 'RESOLVED_KEPT' | 'DISMISSED';
-  createdAt: string;
-  resolutionNotes?: string;
-  reporter: {
-    id: string;
-    name: string;
-    email: string;
-  };
-  review?: {
-    id: string;
-    value: number;
-    comment?: string;
-    status: string;
-    authorName: string;
-    authorEmail: string;
-    storeName: string;
-    storeId: string;
-  } | null;
-}
-
-export interface AdminAuditLog {
-  id: string;
-  actorId: string;
-  actorEmail: string;
-  actorRole: string;
-  action: string;
-  targetType: string;
-  targetId: string;
-  metadata?: Record<string, unknown>;
-  createdAt: string;
 }
 
 export interface Pagination {

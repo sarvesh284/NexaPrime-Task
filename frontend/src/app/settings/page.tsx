@@ -121,9 +121,7 @@ export default function SettingsSecurityPage() {
           <div className="flex items-center gap-2">
             <span
               className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${
-                user.role === 'ADMIN'
-                  ? 'bg-rose-950/80 text-rose-300 border-rose-800'
-                  : user.role === 'STORE_OWNER'
+                user.role === 'STORE_OWNER'
                   ? 'bg-purple-950/80 text-purple-300 border-purple-800'
                   : 'bg-emerald-950/80 text-emerald-300 border-emerald-800'
               }`}

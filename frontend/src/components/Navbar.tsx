@@ -11,7 +11,6 @@ import {
   Menu,
   X,
   ExternalLink,
-  ShieldAlert,
   Heart,
   Star,
   Settings,
@@ -114,19 +113,6 @@ export const Navbar: React.FC = () => {
             </Link>
           )}
 
-          {user?.role === 'ADMIN' && (
-            <Link
-              href="/admin/dashboard"
-              className={`flex items-center gap-1.5 text-sm font-semibold transition-colors px-2.5 py-1 rounded-lg border ${
-                isActive('/admin')
-                  ? 'bg-rose-500/10 text-rose-600 dark:text-rose-300 border-rose-300 dark:border-rose-500/40 shadow-sm'
-                  : 'text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/50 hover:bg-rose-50 dark:hover:bg-rose-950/40'
-              }`}
-            >
-              <ShieldAlert className="w-4 h-4" />
-              <span>Admin Portal</span>
-            </Link>
-          )}
 
           <a
             href={
@@ -161,14 +147,12 @@ export const Navbar: React.FC = () => {
                   </span>
                   <span
                     className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded w-fit ${
-                      user.role === 'ADMIN'
-                        ? 'bg-rose-100 text-rose-700 border border-rose-200 dark:bg-rose-950/80 dark:text-rose-300 dark:border-rose-800/60'
-                        : user.role === 'STORE_OWNER'
+                      user.role === 'STORE_OWNER'
                         ? 'bg-purple-100 text-purple-700 border border-purple-200 dark:bg-purple-950/80 dark:text-purple-300 dark:border-purple-800/60'
                         : 'bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-800/60'
                     }`}
                   >
-                    {user.role === 'ADMIN' ? 'Admin' : user.role === 'STORE_OWNER' ? 'Owner' : 'User'}
+                    {user.role === 'STORE_OWNER' ? 'Owner' : 'User'}
                   </span>
                 </div>
               </div>
@@ -264,15 +248,7 @@ export const Navbar: React.FC = () => {
               Owner Portal
             </Link>
           )}
-          {user?.role === 'ADMIN' && (
-            <Link
-              href="/admin/dashboard"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block text-sm font-medium text-rose-500"
-            >
-              Admin Portal
-            </Link>
-          )}
+
           <div className="pt-3 border-t border-slate-200 dark:border-zinc-800">
             {user ? (
               <div className="space-y-2">

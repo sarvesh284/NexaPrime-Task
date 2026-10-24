@@ -117,44 +117,4 @@ export class PhotoController {
       next(error);
     }
   }
-
-  static async getReportedPhotos(
-    _req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> {
-    try {
-      const page = _req.query.page ? parseInt(_req.query.page as string, 10) : 1;
-      const limit = _req.query.limit ? parseInt(_req.query.limit as string, 10) : 10;
-
-      const result = await PhotoService.getReportedPhotos(page, limit);
-      sendSuccess(res, result.photos, 'Reported photos retrieved', 200, result.pagination);
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  static async moderatePhoto(
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> {
-    try {
-      const { action, reason } = req.body;
-      const ip = req.ip || req.socket.remoteAddress;
-      const userAgent = req.headers['user-agent'];
-
-      const result = await PhotoService.moderatePhoto(
-        req.user!.userId,
-        req.params.id,
-        action,
-        reason,
-        ip,
-        userAgent
-      );
-      sendSuccess(res, null, result.message, 200);
-    } catch (error) {
-      next(error);
-    }
-  }
 }

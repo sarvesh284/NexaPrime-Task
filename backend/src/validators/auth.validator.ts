@@ -6,7 +6,7 @@ export const registerSchema = z.object({
   name: z
     .string({ required_error: 'Name is required' })
     .trim()
-    .min(20, 'Name must be at least 20 characters')
+    .min(2, 'Name must be at least 2 characters')
     .max(60, 'Name must not exceed 60 characters')
     .refine((val) => val.length > 0, 'Name cannot be empty after trimming'),
   email: z
@@ -27,6 +27,7 @@ export const registerSchema = z.object({
     .trim()
     .min(1, 'Address is required')
     .max(400, 'Address must not exceed 400 characters'),
+  role: z.enum(['USER', 'STORE_OWNER']).optional().default('USER'),
 });
 
 export const loginSchema = z.object({

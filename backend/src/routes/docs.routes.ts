@@ -6,7 +6,7 @@ const swaggerSpec = {
   info: {
     title: 'Store Rating Platform API',
     version: '2.0.0',
-    description: 'Production-ready REST API for the Store Rating Web Application with role-based access control (USER, STORE_OWNER, ADMIN), review comments & moderation, email verification, password reset, advanced owner analytics, and Bayesian rating discovery.',
+    description: 'Production-ready REST API for the Store Rating Web Application with role-based access control (USER, STORE_OWNER), review comments, email verification, password reset, advanced owner analytics, and Bayesian rating discovery.',
   },
   servers: [
     {
@@ -35,7 +35,7 @@ const swaggerSpec = {
           name: { type: 'string' },
           email: { type: 'string', format: 'email' },
           address: { type: 'string' },
-          role: { type: 'string', enum: ['USER', 'STORE_OWNER', 'ADMIN'] },
+          role: { type: 'string', enum: ['USER', 'STORE_OWNER'] },
           isEmailVerified: { type: 'boolean' },
           createdAt: { type: 'string', format: 'date-time' },
         },
@@ -169,67 +169,6 @@ const swaggerSpec = {
       get: {
         summary: 'Export owner ratings to CSV with formula injection defense',
         tags: ['Store Owner'],
-        security: [{ cookieAuth: [] }],
-      },
-    },
-    '/admin/kpis': {
-      get: {
-        summary: 'Platform-wide KPIs for Admin Dashboard',
-        tags: ['Admin'],
-        security: [{ cookieAuth: [] }],
-      },
-    },
-    '/admin/users': {
-      get: {
-        summary: 'Paginated user management list',
-        tags: ['Admin'],
-        security: [{ cookieAuth: [] }],
-      },
-    },
-    '/admin/users/{id}/status': {
-      patch: {
-        summary: 'Deactivate or reactivate user account',
-        tags: ['Admin'],
-        security: [{ cookieAuth: [] }],
-      },
-    },
-    '/admin/stores': {
-      get: {
-        summary: 'Paginated stores list for admin',
-        tags: ['Admin'],
-        security: [{ cookieAuth: [] }],
-      },
-      post: {
-        summary: 'Create store and assign owner',
-        tags: ['Admin'],
-        security: [{ cookieAuth: [] }],
-      },
-    },
-    '/admin/stores/{id}/assign-owner': {
-      post: {
-        summary: 'Assign or reassign store owner',
-        tags: ['Admin'],
-        security: [{ cookieAuth: [] }],
-      },
-    },
-    '/admin/reports': {
-      get: {
-        summary: 'List reported reviews for moderation',
-        tags: ['Admin'],
-        security: [{ cookieAuth: [] }],
-      },
-    },
-    '/admin/reports/{id}/moderate': {
-      post: {
-        summary: 'Moderate report (HIDE_REVIEW, DISMISS, RESTORE_REVIEW)',
-        tags: ['Admin'],
-        security: [{ cookieAuth: [] }],
-      },
-    },
-    '/admin/audit-logs': {
-      get: {
-        summary: 'View platform administrative audit logs',
-        tags: ['Admin'],
         security: [{ cookieAuth: [] }],
       },
     },

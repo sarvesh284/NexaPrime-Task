@@ -151,7 +151,6 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
   // Helper to check if current logged in user can delete this photo
   const canDeletePhoto = (photo: PhotoItem) => {
     if (!user) return false;
-    if (user.role === 'ADMIN') return true;
     if (isOwner) return true;
     const uploaderId = typeof photo.userId === 'object' ? photo.userId.id || photo.userId._id : photo.userId;
     return uploaderId === user.id;
@@ -426,8 +425,8 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
 
                 {/* Actions Bottom Bar */}
                 <div className="pt-4 border-t border-zinc-800 space-y-2">
-                {/* Set as Cover (Store Owner or Admin) */}
-                {(isOwner || user?.role === 'ADMIN') && !activePhoto.isCover && (
+                {/* Set as Cover (Store Owner) */}
+                {isOwner && !activePhoto.isCover && (
                   <button
                     onClick={() => handleSetCoverClick(activePhoto.id)}
                     disabled={actionLoading}

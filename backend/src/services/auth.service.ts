@@ -21,20 +21,33 @@ export class AuthService {
     const { token: verificationToken, hash: verificationTokenHash } = emailService.generateToken();
     const verificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    // Public registration MUST ALWAYS assign role 'USER'
+    // Validate role using strict allowlist (USER or STORE_OWNER only)
+    if (input.role && input.role !== 'USER' && input.role !== 'STORE_OWNER') {
+      const error: any = new Error('Invalid role specified. Only USER and STORE_OWNER roles are permitted.');
+      error.statusCode = 400;
+      error.code = 'INVALID_ROLE';
+      throw error;
+    }
+
+    // Self-registration permits USER (Customer) or STORE_OWNER
+    console.log('[REGISTER DEBUG]', {
+      receivedRole: input.role,
+      assignedRole: input.role === 'STORE_OWNER' ? 'STORE_OWNER' : 'USER',
+    });
+    const assignedRole = input.role === 'STORE_OWNER' ? 'STORE_OWNER' : 'USER';
     const newUser = await UserModel.create({
       name: input.name,
       email: input.email,
       address: input.address,
       passwordHash,
-      role: 'USER',
+      role: assignedRole,
       isActive: true,
       isEmailVerified: false,
       emailVerificationTokenHash: verificationTokenHash,
       emailVerificationExpiresAt: verificationExpiresAt,
       tokenVersion: 1,
     });
-
+console.log('[REGISTER DEBUG] Saved role:', newUser.role);
     // Send email verification asynchronously (doesn't block registration)
     emailService.sendVerificationEmail(newUser.email, verificationToken).catch((err) => {
       console.error('Failed to dispatch verification email:', err);

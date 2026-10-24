@@ -34,7 +34,7 @@ export class PhotoService {
     const isStoreOwner = Boolean(
       store.ownerId && store.ownerId.toString() === userId.toString()
     );
-    const isOfficial = isStoreOwner || userRole === 'ADMIN';
+    const isOfficial = isStoreOwner;
 
     const savedPhotos: IPhoto[] = [];
 
@@ -156,7 +156,7 @@ export class PhotoService {
 
   /**
    * Delete an authorized photo
-   * Allowed for: uploader, store owner of that store, or administrator
+   * Allowed for: uploader or store owner of that store
    */
   static async deletePhoto(userId: string, userRole: string, photoId: string) {
     if (!mongoose.Types.ObjectId.isValid(photoId)) {
@@ -176,12 +176,11 @@ export class PhotoService {
 
     const store = await StoreModel.findById(photo.storeId);
     const isUploader = photo.userId.toString() === userId.toString();
-    const isAdmin = userRole === 'ADMIN';
     const isStoreOwner = Boolean(
       store && store.ownerId && store.ownerId.toString() === userId.toString()
     );
 
-    if (!isUploader && !isAdmin && !isStoreOwner) {
+    if (!isUploader && !isStoreOwner) {
       const err: any = new Error('You are not authorized to delete this photo');
       err.statusCode = 403;
       err.code = 'FORBIDDEN';
@@ -218,7 +217,7 @@ export class PhotoService {
 
   /**
    * Set or change store cover photo
-   * Allowed for: verified store owner of this store, or administrator
+   * Allowed for: verified store owner of this store
    */
   static async setCoverPhoto(
     userId: string,
@@ -244,11 +243,10 @@ export class PhotoService {
     const isStoreOwner = Boolean(
       store.ownerId && store.ownerId.toString() === userId.toString()
     );
-    const isAdmin = userRole === 'ADMIN';
 
-    if (!isStoreOwner && !isAdmin) {
+    if (!isStoreOwner) {
       const err: any = new Error(
-        'Only the verified store owner or administrator can select the cover photo'
+        'Only the verified store owner can select the cover photo'
       );
       err.statusCode = 403;
       err.code = 'FORBIDDEN';
@@ -333,125 +331,7 @@ export class PhotoService {
     await photo.save();
 
     return {
-      message: 'Photo report submitted. Our moderation team will investigate.',
-    };
-  }
-
-  /**
-   * Retrieve reported/pending photos for administrative moderation
-   */
-  static async getReportedPhotos(page: number = 1, limit: number = 10) {
-    const filter = {
-      $or: [
-        { status: 'REPORTED' },
-        { status: 'PENDING' },
-        { 'reports.0': { $exists: true } },
-      ],
-    };
-
-    const skip = (page - 1) * limit;
-
-    const [photos, total] = await Promise.all([
-      PhotoModel.find(filter)
-        .sort({ updatedAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .populate('storeId', 'name city address')
-        .populate('userId', 'name email')
-        .populate('reports.userId', 'name email')
-        .lean(),
-      PhotoModel.countDocuments(filter),
-    ]);
-
-    return {
-      photos: photos.map((p: any) => ({
-        ...p,
-        id: p._id.toString(),
-      })),
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit) || 1,
-      },
-    };
-  }
-
-  /**
-   * Administrative photo moderation action
-   */
-  static async moderatePhoto(
-    adminId: string,
-    photoId: string,
-    action: 'APPROVE' | 'REJECT' | 'DELETE',
-    reason?: string,
-    ip?: string,
-    userAgent?: string
-  ) {
-    if (!mongoose.Types.ObjectId.isValid(photoId)) {
-      const err: any = new Error('Invalid photo ID format');
-      err.statusCode = 400;
-      err.code = 'INVALID_PHOTO_ID';
-      throw err;
-    }
-
-    const photo = await PhotoModel.findById(photoId);
-    if (!photo) {
-      const err: any = new Error('Photo not found');
-      err.statusCode = 404;
-      err.code = 'PHOTO_NOT_FOUND';
-      throw err;
-    }
-
-    const store = await StoreModel.findById(photo.storeId);
-
-    if (action === 'APPROVE') {
-      photo.status = 'APPROVED';
-      photo.reports = [];
-      await photo.save();
-    } else if (action === 'REJECT') {
-      photo.status = 'REJECTED';
-      if (photo.isCover && store) {
-        photo.isCover = false;
-        store.coverImage = '';
-        await store.save();
-      }
-      await photo.save();
-    } else if (action === 'DELETE') {
-      await StorageService.deleteFile(photo.storageKey, photo.storageProvider);
-      if (photo.isCover && store) {
-        store.coverImage = '';
-        await store.save();
-      }
-      await PhotoModel.deleteOne({ _id: photo._id });
-    }
-
-    // Record audit log
-    try {
-      const admin = await UserModel.findById(adminId);
-      if (admin) {
-        await AuditLogModel.create({
-          actorId: admin._id,
-          actorEmail: admin.email,
-          actorRole: admin.role,
-          action: `PHOTO_MODERATION_${action}`,
-          targetType: 'PHOTO',
-          targetId: photoId,
-          metadata: {
-            action,
-            reason: reason || 'Moderation decision',
-            storeId: photo.storeId.toString(),
-            ip: ip || '127.0.0.1',
-            userAgent: userAgent || 'Platform Admin',
-          },
-        });
-      }
-    } catch (auditErr) {
-      console.error('Failed to log photo moderation audit:', auditErr);
-    }
-
-    return {
-      message: `Photo successfully ${action === 'APPROVE' ? 'approved' : action === 'REJECT' ? 'rejected' : 'deleted'}.`,
+      message: 'Photo report submitted. Our team will review this photo.',
     };
   }
 }

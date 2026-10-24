@@ -19,7 +19,6 @@ const VALID_WEBP = Buffer.from([
 const INVALID_FILE = Buffer.from('This is an executable or plain text masquerading as an image.');
 
 describe('Store Photo Upload and Gallery Features', () => {
-  let adminCookie: string[];
   let ownerCookie: string[];
   let otherOwnerCookie: string[];
   let user1Cookie: string[];
@@ -32,23 +31,7 @@ describe('Store Photo Upload and Gallery Features', () => {
   beforeEach(async () => {
     const passwordHash = await hashPassword('Password@123');
 
-    // 1. Admin
-    await UserModel.create({
-      name: 'System Admin Testing User',
-      email: 'admin.photo@example.com',
-      address: '100 Admin Blvd, City, ST',
-      passwordHash,
-      role: 'ADMIN',
-      isActive: true,
-      isEmailVerified: true,
-    });
-    const adminLogin = await request(app).post('/api/v1/auth/login').send({
-      email: 'admin.photo@example.com',
-      password: 'Password@123',
-    });
-    adminCookie = adminLogin.headers['set-cookie'];
-
-    // 2. Store Owner 1
+    // 1. Store Owner 1
     const owner = await UserModel.create({
       name: 'Verified Store Owner Account',
       email: 'owner.photo@example.com',
@@ -277,7 +260,7 @@ describe('Store Photo Upload and Gallery Features', () => {
     expect(checkPhoto).toBeNull();
   });
 
-  it('allows user to report a photo, prevents duplicate reports, and allows admin moderation', async () => {
+  it('allows user to report a photo and prevents duplicate reports', async () => {
     // Upload photo
     const uploadRes = await request(app)
       .post(`/api/v1/stores/${storeId}/photos`)
@@ -300,22 +283,5 @@ describe('Store Photo Upload and Gallery Features', () => {
       .set('Cookie', user2Cookie)
       .send({ reason: 'SPAM' });
     expect(dupReport.status).toBe(409);
-
-    // Admin lists reported photos
-    const adminQueueRes = await request(app)
-      .get('/api/v1/admin/photos')
-      .set('Cookie', adminCookie);
-    expect(adminQueueRes.status).toBe(200);
-    expect(adminQueueRes.body.data.length).toBeGreaterThanOrEqual(1);
-
-    // Admin approves or rejects photo
-    const moderateRes = await request(app)
-      .patch(`/api/v1/admin/photos/${photoId}/moderate`)
-      .set('Cookie', adminCookie)
-      .send({ action: 'APPROVE', reason: 'Verified safe community photo' });
-    expect(moderateRes.status).toBe(200);
-
-    const moderatedPhoto = await PhotoModel.findById(photoId);
-    expect(moderatedPhoto?.status).toBe('APPROVED');
   });
 });

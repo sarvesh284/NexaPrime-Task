@@ -38,7 +38,7 @@ const userSchema = new Schema<IUser>(
     name: {
       type: String,
       required: true,
-      minlength: 20,
+      minlength: 2,
       maxlength: 60,
       trim: true,
     },
@@ -63,7 +63,7 @@ const userSchema = new Schema<IUser>(
     },
     role: {
       type: String,
-      enum: ['USER', 'STORE_OWNER', 'ADMIN'],
+      enum: ['USER', 'STORE_OWNER'],
       default: 'USER',
       index: true,
     },
