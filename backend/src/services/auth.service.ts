@@ -30,10 +30,6 @@ export class AuthService {
     }
 
     // Self-registration permits USER (Customer) or STORE_OWNER
-    console.log('[REGISTER DEBUG]', {
-      receivedRole: input.role,
-      assignedRole: input.role === 'STORE_OWNER' ? 'STORE_OWNER' : 'USER',
-    });
     const assignedRole = input.role === 'STORE_OWNER' ? 'STORE_OWNER' : 'USER';
     const newUser = await UserModel.create({
       name: input.name,
@@ -47,7 +43,6 @@ export class AuthService {
       emailVerificationExpiresAt: verificationExpiresAt,
       tokenVersion: 1,
     });
-console.log('[REGISTER DEBUG] Saved role:', newUser.role);
     // Send email verification asynchronously (doesn't block registration)
     emailService.sendVerificationEmail(newUser.email, verificationToken).catch((err) => {
       console.error('Failed to dispatch verification email:', err);

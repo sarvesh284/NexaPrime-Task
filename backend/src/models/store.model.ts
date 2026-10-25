@@ -140,5 +140,7 @@ const storeSchema = new Schema<IStore>(
 storeSchema.index({ isActive: 1, name: 1 });
 storeSchema.index({ isActive: 1, category: 1 });
 storeSchema.index({ isActive: 1, city: 1 });
+storeSchema.index({ ownerId: 1, isActive: 1 });
 
 export const StoreModel = mongoose.model<IStore>('Store', storeSchema);
+

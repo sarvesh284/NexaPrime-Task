@@ -2,8 +2,15 @@ import { Router } from 'express';
 import { OwnerController } from '../controllers/owner.controller';
 import { requireAuth } from '../middleware/auth.middleware';
 import { requireRole } from '../middleware/role.middleware';
-import { validateQuery } from '../middleware/validate.middleware';
-import { ownerRatingsQuerySchema, ownerAnalyticsQuerySchema } from '../validators/store.validator';
+import { validateBody, validateParams, validateQuery } from '../middleware/validate.middleware';
+import {
+  ownerRatingsQuerySchema,
+  ownerAnalyticsQuerySchema,
+  createStoreSchema,
+  updateStoreSchema,
+  ownerStoreQuerySchema,
+  objectIdParamSchema,
+} from '../validators/store.validator';
 
 const router = Router();
 
@@ -53,12 +60,56 @@ router.delete(
   OwnerController.deleteReply
 );
 
-// Update store profile details (O2)
+// Store Owner Store Management (Full CRUD)
+router.post(
+  '/stores',
+  requireAuth,
+  requireRole('STORE_OWNER'),
+  validateBody(createStoreSchema),
+  OwnerController.createStore
+);
+
+router.get(
+  '/stores',
+  requireAuth,
+  requireRole('STORE_OWNER'),
+  validateQuery(ownerStoreQuerySchema),
+  OwnerController.getStores
+);
+
+router.get(
+  '/stores/:id',
+  requireAuth,
+  requireRole('STORE_OWNER'),
+  validateParams(objectIdParamSchema),
+  OwnerController.getStoreById
+);
+
+router.put(
+  '/stores/:id',
+  requireAuth,
+  requireRole('STORE_OWNER'),
+  validateParams(objectIdParamSchema),
+  validateBody(updateStoreSchema),
+  OwnerController.updateStore
+);
+
 router.patch(
   '/stores/:id',
   requireAuth,
   requireRole('STORE_OWNER'),
-  OwnerController.updateStoreProfile
+  validateParams(objectIdParamSchema),
+  validateBody(updateStoreSchema),
+  OwnerController.updateStore
+);
+
+router.delete(
+  '/stores/:id',
+  requireAuth,
+  requireRole('STORE_OWNER'),
+  validateParams(objectIdParamSchema),
+  OwnerController.deleteStore
 );
 
 export default router;
+

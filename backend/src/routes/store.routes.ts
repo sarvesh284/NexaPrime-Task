@@ -2,14 +2,21 @@ import { Router } from 'express';
 import { StoreController } from '../controllers/store.controller';
 import { RatingController } from '../controllers/rating.controller';
 import { PhotoController } from '../controllers/photo.controller';
+import { OwnerController } from '../controllers/owner.controller';
 import { photoUploadMiddleware, validateImageContent } from '../middleware/upload.middleware';
 import { optionalAuth, requireAuth } from '../middleware/auth.middleware';
 import { requireRole } from '../middleware/role.middleware';
 import { validateBody, validateParams, validateQuery } from '../middleware/validate.middleware';
-import { storeQuerySchema, objectIdParamSchema } from '../validators/store.validator';
+import {
+  storeQuerySchema,
+  objectIdParamSchema,
+  createStoreSchema,
+  updateStoreSchema,
+} from '../validators/store.validator';
 import { ratingSchema, reportReviewSchema, reviewQuerySchema } from '../validators/rating.validator';
 
 const router = Router();
+
 
 // Store discovery & metadata
 router.get('/filter-options', StoreController.getFilterOptions);
@@ -100,6 +107,41 @@ router.patch(
   '/:storeId/photos/:photoId/cover',
   requireAuth,
   PhotoController.setCoverPhoto
+);
+
+// Store Owner Management Endpoints on /stores
+router.post(
+  '/',
+  requireAuth,
+  requireRole('STORE_OWNER'),
+  validateBody(createStoreSchema),
+  OwnerController.createStore
+);
+
+router.put(
+  '/:id',
+  requireAuth,
+  requireRole('STORE_OWNER'),
+  validateParams(objectIdParamSchema),
+  validateBody(updateStoreSchema),
+  OwnerController.updateStore
+);
+
+router.patch(
+  '/:id',
+  requireAuth,
+  requireRole('STORE_OWNER'),
+  validateParams(objectIdParamSchema),
+  validateBody(updateStoreSchema),
+  OwnerController.updateStore
+);
+
+router.delete(
+  '/:id',
+  requireAuth,
+  requireRole('STORE_OWNER'),
+  validateParams(objectIdParamSchema),
+  OwnerController.deleteStore
 );
 
 export default router;

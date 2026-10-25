@@ -172,6 +172,40 @@ const swaggerSpec = {
         security: [{ cookieAuth: [] }],
       },
     },
+    '/owner/stores': {
+      get: {
+        summary: 'List stores owned by the authenticated owner with optional filters',
+        tags: ['Store Owner'],
+        security: [{ cookieAuth: [] }],
+      },
+      post: {
+        summary: 'Register and create a new store owned by authenticated store owner',
+        tags: ['Store Owner'],
+        security: [{ cookieAuth: [] }],
+      },
+    },
+    '/owner/stores/{id}': {
+      get: {
+        summary: 'Get details of an owner store by ID',
+        tags: ['Store Owner'],
+        security: [{ cookieAuth: [] }],
+      },
+      put: {
+        summary: 'Update details of an owner store',
+        tags: ['Store Owner'],
+        security: [{ cookieAuth: [] }],
+      },
+      patch: {
+        summary: 'Partially update details of an owner store',
+        tags: ['Store Owner'],
+        security: [{ cookieAuth: [] }],
+      },
+      delete: {
+        summary: 'Soft-delete / archive an owner store while preserving rating history',
+        tags: ['Store Owner'],
+        security: [{ cookieAuth: [] }],
+      },
+    },
   },
 };
 

@@ -1,7 +1,14 @@
 import mongoose from 'mongoose';
 import { StoreModel } from '../models/store.model';
 import { RatingModel } from '../models/rating.model';
-import { OwnerRatingsQueryInput, OwnerAnalyticsQueryInput } from '../validators/store.validator';
+import { UserModel } from '../models/user.model';
+import {
+  OwnerRatingsQueryInput,
+  OwnerAnalyticsQueryInput,
+  CreateStoreInput,
+  UpdateStoreInput,
+  OwnerStoreQueryInput,
+} from '../validators/store.validator';
 import { notificationService } from './notification.service';
 import { sanitizeText } from '../utils/sanitize';
 
@@ -643,37 +650,277 @@ export class OwnerService {
   }
 
   /**
-   * Update store profile details by owner (O2)
+   * Create a new store owned by the authenticated store owner
    */
-  static async updateStoreProfile(
-    ownerId: string,
-    storeId: string,
-    updateData: {
-      description?: string;
-      phone?: string;
-      website?: string;
-      address?: string;
-      category?: string;
-    }
-  ) {
-    if (!mongoose.isValidObjectId(storeId)) {
-      const err: any = new Error('Invalid store ID format');
+  static async createStore(ownerId: string, input: CreateStoreInput) {
+    if (!mongoose.isValidObjectId(ownerId)) {
+      const err: any = new Error('Invalid owner ID format');
       err.statusCode = 400;
       throw err;
     }
 
-    const store = await StoreModel.findById(storeId);
-    if (!store || !store.ownerId || store.ownerId.toString() !== ownerId) {
-      const err: any = new Error('Forbidden: You can only edit your own store profile');
+    const owner = await UserModel.findById(ownerId);
+    if (!owner || owner.role !== 'STORE_OWNER') {
+      const err: any = new Error('Forbidden: Only registered Store Owners can create stores');
       err.statusCode = 403;
+      err.code = 'FORBIDDEN';
       throw err;
     }
 
-    if (updateData.description !== undefined) store.description = sanitizeText(updateData.description);
-    if (updateData.phone !== undefined) store.phone = sanitizeText(updateData.phone);
-    if (updateData.website !== undefined) store.website = sanitizeText(updateData.website);
+    const newStore = await StoreModel.create({
+      name: sanitizeText(input.name) || input.name.trim(),
+      email: input.email ? input.email.trim().toLowerCase() : '',
+      address: input.address.trim(),
+      category: input.category ? input.category.trim() : 'Retail',
+      city: input.city ? input.city.trim() : 'Pune',
+      state: input.state ? input.state.trim() : 'Maharashtra',
+      description: sanitizeText(input.description) || '',
+      phone: sanitizeText(input.phone) || '',
+      website: sanitizeText(input.website) || '',
+      coverImage: input.coverImage ? input.coverImage.trim() : '',
+      coordinates: input.coordinates,
+      ownerId: new mongoose.Types.ObjectId(ownerId),
+      isActive: true,
+      isDemo: false,
+      averageRating: 0,
+      ratingCount: 0,
+    });
+
+    return {
+      store: {
+        id: newStore._id.toString(),
+        name: newStore.name,
+        email: newStore.email,
+        address: newStore.address,
+        category: newStore.category,
+        city: newStore.city,
+        state: newStore.state,
+        description: newStore.description,
+        phone: newStore.phone,
+        website: newStore.website,
+        coverImage: newStore.coverImage,
+        coordinates: newStore.coordinates,
+        isActive: newStore.isActive,
+        createdAt: newStore.createdAt,
+        updatedAt: newStore.updatedAt,
+        ratingCount: 0,
+        averageRating: 0,
+      },
+      message: 'Store created successfully',
+    };
+  }
+
+  /**
+   * Get all stores owned by the authenticated owner with optional filters and pagination
+   */
+  static async getOwnerStores(ownerId: string, query: Partial<OwnerStoreQueryInput> = {}) {
+    if (!mongoose.isValidObjectId(ownerId)) {
+      const err: any = new Error('Invalid owner ID format');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const ownerObjectId = new mongoose.Types.ObjectId(ownerId);
+    const matchQuery: any = { ownerId: ownerObjectId };
+
+    if (query.status === 'archived') {
+      matchQuery.isActive = false;
+    } else if (query.status === 'all') {
+      // Return both active and archived
+    } else {
+      // Default: active only
+      matchQuery.isActive = true;
+    }
+
+    if (query.search) {
+      matchQuery.$or = [
+        { name: { $regex: query.search, $options: 'i' } },
+        { address: { $regex: query.search, $options: 'i' } },
+        { city: { $regex: query.search, $options: 'i' } },
+        { category: { $regex: query.search, $options: 'i' } },
+      ];
+    }
+
+    if (query.category) {
+      matchQuery.category = query.category;
+    }
+
+    if (query.city) {
+      matchQuery.city = query.city;
+    }
+
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const sortField = query.sort || 'createdAt';
+    const sortDir = query.order === 'asc' ? 1 : -1;
+
+    const [total, stores] = await Promise.all([
+      StoreModel.countDocuments(matchQuery),
+      StoreModel.find(matchQuery)
+        .sort({ [sortField]: sortDir })
+        .skip((page - 1) * limit)
+        .limit(limit),
+    ]);
+
+    const storeIds = stores.map((s) => s._id);
+
+    // Compute live visible ratings statistics for each store
+    const perStoreAgg = await RatingModel.aggregate([
+      { $match: { storeId: { $in: storeIds }, status: 'VISIBLE' } },
+      {
+        $group: {
+          _id: '$storeId',
+          totalRatings: { $sum: 1 },
+          averageRating: { $avg: '$value' },
+        },
+      },
+    ]);
+
+    const statsByStoreId = new Map(
+      perStoreAgg.map((item) => [
+        item._id.toString(),
+        {
+          totalRatings: item.totalRatings,
+          averageRating: Math.round(item.averageRating * 10) / 10,
+        },
+      ])
+    );
+
+    const formattedStores = stores.map((store) => {
+      const stats = statsByStoreId.get(store._id.toString()) || {
+        totalRatings: store.ratingCount || 0,
+        averageRating: store.averageRating || 0,
+      };
+      return {
+        id: store._id.toString(),
+        name: store.name,
+        email: store.email,
+        address: store.address,
+        category: store.category,
+        city: store.city,
+        state: store.state,
+        description: store.description,
+        phone: store.phone,
+        website: store.website,
+        coverImage: store.coverImage,
+        coordinates: store.coordinates,
+        isActive: store.isActive,
+        createdAt: store.createdAt,
+        updatedAt: store.updatedAt,
+        ratingCount: stats.totalRatings,
+        averageRating: stats.averageRating,
+      };
+    });
+
+    return {
+      stores: formattedStores,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+    };
+  }
+
+  /**
+   * Get single store details owned by the authenticated owner
+   */
+  static async getOwnerStoreById(ownerId: string, storeId: string) {
+    if (!mongoose.isValidObjectId(storeId)) {
+      const err: any = new Error('Invalid store ID format');
+      err.statusCode = 400;
+      err.code = 'INVALID_ID';
+      throw err;
+    }
+
+    const store = await StoreModel.findById(storeId);
+    if (!store) {
+      const err: any = new Error('Store not found');
+      err.statusCode = 404;
+      err.code = 'STORE_NOT_FOUND';
+      throw err;
+    }
+
+    if (!store.ownerId || store.ownerId.toString() !== ownerId) {
+      const err: any = new Error('Forbidden: You do not have permission to view or manage this store');
+      err.statusCode = 403;
+      err.code = 'FORBIDDEN';
+      throw err;
+    }
+
+    // Compute live rating statistics
+    const [ratingStats] = await RatingModel.aggregate([
+      { $match: { storeId: store._id, status: 'VISIBLE' } },
+      {
+        $group: {
+          _id: null,
+          totalRatings: { $sum: 1 },
+          averageRating: { $avg: '$value' },
+        },
+      },
+    ]);
+
+    return {
+      store: {
+        id: store._id.toString(),
+        name: store.name,
+        email: store.email,
+        address: store.address,
+        category: store.category,
+        city: store.city,
+        state: store.state,
+        description: store.description,
+        phone: store.phone,
+        website: store.website,
+        coverImage: store.coverImage,
+        coordinates: store.coordinates,
+        isActive: store.isActive,
+        createdAt: store.createdAt,
+        updatedAt: store.updatedAt,
+        ratingCount: ratingStats?.totalRatings || store.ratingCount || 0,
+        averageRating: ratingStats ? Math.round(ratingStats.averageRating * 10) / 10 : store.averageRating || 0,
+      },
+    };
+  }
+
+  /**
+   * Update store profile details with ownership enforcement and mass-assignment protection
+   */
+  static async updateOwnerStore(ownerId: string, storeId: string, updateData: UpdateStoreInput) {
+    if (!mongoose.isValidObjectId(storeId)) {
+      const err: any = new Error('Invalid store ID format');
+      err.statusCode = 400;
+      err.code = 'INVALID_ID';
+      throw err;
+    }
+
+    const store = await StoreModel.findById(storeId);
+    if (!store) {
+      const err: any = new Error('Store not found');
+      err.statusCode = 404;
+      err.code = 'STORE_NOT_FOUND';
+      throw err;
+    }
+
+    if (!store.ownerId || store.ownerId.toString() !== ownerId) {
+      const err: any = new Error('Forbidden: You can only edit your own store');
+      err.statusCode = 403;
+      err.code = 'FORBIDDEN';
+      throw err;
+    }
+
+    if (updateData.name !== undefined && updateData.name.trim()) store.name = sanitizeText(updateData.name) || updateData.name.trim();
+    if (updateData.description !== undefined) store.description = sanitizeText(updateData.description) || '';
+    if (updateData.phone !== undefined) store.phone = sanitizeText(updateData.phone) || '';
+    if (updateData.email !== undefined) store.email = updateData.email ? updateData.email.trim().toLowerCase() : '';
+    if (updateData.website !== undefined) store.website = sanitizeText(updateData.website) || '';
     if (updateData.address !== undefined && updateData.address.trim()) store.address = updateData.address.trim();
     if (updateData.category !== undefined && updateData.category.trim()) store.category = updateData.category.trim();
+    if (updateData.city !== undefined && updateData.city.trim()) store.city = updateData.city.trim();
+    if (updateData.state !== undefined && updateData.state.trim()) store.state = updateData.state.trim();
+    if (updateData.coverImage !== undefined) store.coverImage = updateData.coverImage.trim();
+    if (updateData.coordinates !== undefined) store.coordinates = updateData.coordinates;
 
     await store.save();
 
@@ -685,13 +932,67 @@ export class OwnerService {
         address: store.address,
         category: store.category,
         city: store.city,
+        state: store.state,
         description: store.description,
         phone: store.phone,
         website: store.website,
+        coverImage: store.coverImage,
         coordinates: store.coordinates,
         isActive: store.isActive,
+        createdAt: store.createdAt,
+        updatedAt: store.updatedAt,
+        ratingCount: store.ratingCount || 0,
+        averageRating: store.averageRating || 0,
       },
-      message: 'Store profile updated successfully',
+      message: 'Store details updated successfully',
     };
   }
+
+  /**
+   * Soft-delete / archive store while preserving rating history and referential integrity
+   */
+  static async deleteOwnerStore(ownerId: string, storeId: string) {
+    if (!mongoose.isValidObjectId(storeId)) {
+      const err: any = new Error('Invalid store ID format');
+      err.statusCode = 400;
+      err.code = 'INVALID_ID';
+      throw err;
+    }
+
+    const store = await StoreModel.findById(storeId);
+    if (!store) {
+      const err: any = new Error('Store not found');
+      err.statusCode = 404;
+      err.code = 'STORE_NOT_FOUND';
+      throw err;
+    }
+
+    if (!store.ownerId || store.ownerId.toString() !== ownerId) {
+      const err: any = new Error('Forbidden: You can only delete your own store');
+      err.statusCode = 403;
+      err.code = 'FORBIDDEN';
+      throw err;
+    }
+
+    // Soft delete: sets isActive to false
+    store.isActive = false;
+    await store.save();
+
+    return {
+      storeId: store._id.toString(),
+      message: 'Store archived successfully. Historical ratings and reviews have been preserved.',
+    };
+  }
+
+  /**
+   * Backward-compatible alias for store profile updating (O2)
+   */
+  static async updateStoreProfile(
+    ownerId: string,
+    storeId: string,
+    updateData: UpdateStoreInput
+  ) {
+    return this.updateOwnerStore(ownerId, storeId, updateData);
+  }
 }
+

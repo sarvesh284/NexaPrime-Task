@@ -61,6 +61,51 @@ export class OwnerController {
     }
   }
 
+  static async createStore(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await OwnerService.createStore(req.user!.userId, req.body);
+      sendSuccess(res, result, result.message, 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getStores(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await OwnerService.getOwnerStores(req.user!.userId, req.query as any);
+      sendSuccess(res, { stores: result.stores }, 'Owner stores retrieved successfully', 200, result.pagination);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getStoreById(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await OwnerService.getOwnerStoreById(req.user!.userId, req.params.id);
+      sendSuccess(res, result, 'Store retrieved successfully', 200);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async updateStore(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await OwnerService.updateOwnerStore(req.user!.userId, req.params.id, req.body);
+      sendSuccess(res, result, result.message, 200);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async deleteStore(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await OwnerService.deleteOwnerStore(req.user!.userId, req.params.id);
+      sendSuccess(res, result, result.message, 200);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async updateStoreProfile(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await OwnerService.updateStoreProfile(req.user!.userId, req.params.id, req.body);
