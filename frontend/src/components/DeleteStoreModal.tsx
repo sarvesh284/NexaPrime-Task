@@ -55,34 +55,34 @@ export const DeleteStoreModal: React.FC<DeleteStoreModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-md bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-2xl p-6 text-slate-900 dark:text-white space-y-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm animate-fade-in">
+      <div className="relative w-full max-w-md bg-white dark:bg-zinc-900 border border-slate-200/90 dark:border-zinc-800 rounded-3xl shadow-2xl p-6 text-slate-900 dark:text-white space-y-4">
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-zinc-800">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-zinc-800">
           <div className="flex items-center gap-2.5 text-rose-600 dark:text-rose-400">
-            <div className="w-9 h-9 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shadow-2xs">
               <AlertTriangle className="w-5 h-5" />
             </div>
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">Archive Store Location</h3>
+            <h3 className="text-base font-extrabold text-slate-900 dark:text-white">Archive Store Location</h3>
           </div>
           <button
             onClick={onClose}
             disabled={isDeleting}
-            className="text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 rounded-lg"
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Store Summary Card */}
-        <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 space-y-1 text-xs">
+        <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 space-y-1 text-xs shadow-2xs">
           <p className="font-bold text-sm text-slate-900 dark:text-white">{store.name}</p>
           <p className="text-slate-500 dark:text-zinc-400">{store.category} • {store.city}</p>
           <p className="text-slate-600 dark:text-zinc-400 text-[11px] truncate">{store.address}</p>
         </div>
 
         {/* Informative Explanation of Soft Deletion */}
-        <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 text-xs space-y-2">
+        <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 text-xs space-y-2 shadow-2xs">
           <p className="font-semibold flex items-center gap-1.5">
             <ShieldCheck className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
             <span>Preserving Rating History & Data Integrity</span>
@@ -95,18 +95,18 @@ export const DeleteStoreModal: React.FC<DeleteStoreModalProps> = ({
         </div>
 
         {errorMessage && (
-          <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/80 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-200 text-xs font-medium">
+          <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/80 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-200 text-xs font-medium shadow-2xs">
             {errorMessage}
           </div>
         )}
 
         {/* Actions */}
-        <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-200 dark:border-zinc-800 text-xs">
+        <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-zinc-800 text-xs">
           <button
             type="button"
             onClick={onClose}
             disabled={isDeleting}
-            className="py-2.5 px-4 rounded-xl border border-slate-300 dark:border-zinc-800 bg-slate-100 dark:bg-zinc-950 hover:bg-slate-200 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-300 font-semibold transition-colors"
+            className="py-2.5 px-4 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-300 font-semibold transition-colors"
           >
             Keep Active
           </button>
@@ -114,7 +114,7 @@ export const DeleteStoreModal: React.FC<DeleteStoreModalProps> = ({
             type="button"
             onClick={handleDelete}
             disabled={isDeleting}
-            className="py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold flex items-center gap-1.5 shadow-lg shadow-rose-600/20 disabled:opacity-50 transition-colors"
+            className="py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold flex items-center gap-1.5 shadow-sm hover:shadow disabled:opacity-50 transition-all active:scale-98"
           >
             {isDeleting ? (
               <>

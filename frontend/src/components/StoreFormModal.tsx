@@ -225,16 +225,16 @@ export const StoreFormModal: React.FC<StoreFormModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in overflow-y-auto">
-      <div className="relative w-full max-w-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-2xl p-6 text-slate-900 dark:text-white my-8 max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm animate-fade-in overflow-y-auto">
+      <div className="relative w-full max-w-2xl bg-white dark:bg-zinc-900 border border-slate-200/90 dark:border-zinc-800 rounded-3xl shadow-2xl p-6 text-slate-900 dark:text-white my-8 max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-zinc-800">
+        <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-zinc-800">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center shadow-2xs">
               <Building2 className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold">
+              <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
                 {mode === 'create' ? 'Register New Store' : 'Edit Store Details'}
               </h3>
               <p className="text-xs text-slate-500 dark:text-zinc-400">
@@ -247,28 +247,28 @@ export const StoreFormModal: React.FC<StoreFormModalProps> = ({
           <button
             onClick={onClose}
             disabled={isSubmitting}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {generalError && (
-          <div className="mt-4 p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/80 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-200 text-xs flex items-center gap-2">
+          <div className="mt-4 p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/80 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-200 text-xs flex items-center gap-2 shadow-xs">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{generalError}</span>
           </div>
         )}
 
         {/* Scrollable Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto pr-1 mt-4 space-y-4 text-xs">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto pr-1 mt-4 space-y-4 text-xs custom-scrollbar">
           {/* Store Name */}
           <div>
             <div className="flex justify-between items-center mb-1">
               <label className="font-semibold text-slate-700 dark:text-zinc-300">
                 Store Name <span className="text-amber-500">*</span>
               </label>
-              <span className="text-[11px] font-mono text-slate-400 dark:text-zinc-500">
+              <span className="text-[11px] font-mono text-slate-400 dark:text-zinc-500 tabular-nums">
                 {formData.name.length}/100 chars
               </span>
             </div>
@@ -282,8 +282,8 @@ export const StoreFormModal: React.FC<StoreFormModalProps> = ({
                 className={`w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border ${
                   fieldErrors.name
                     ? 'border-rose-500'
-                    : 'border-slate-300 dark:border-zinc-800'
-                } text-slate-900 dark:text-white focus:outline-none focus:border-purple-500`}
+                    : 'border-slate-200 dark:border-zinc-800'
+                } text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-colors shadow-2xs`}
               />
             </div>
             {fieldErrors.name && (
@@ -302,7 +302,7 @@ export const StoreFormModal: React.FC<StoreFormModalProps> = ({
                 <select
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 cursor-pointer"
+                  className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 cursor-pointer shadow-2xs"
                 >
                   {CATEGORY_OPTIONS.map((cat) => (
                     <option key={cat} value={cat}>
@@ -317,7 +317,7 @@ export const StoreFormModal: React.FC<StoreFormModalProps> = ({
                   value={formData.customCategory}
                   onChange={(e) => setFormData({ ...formData, customCategory: e.target.value })}
                   placeholder="Enter custom category"
-                  className="w-full mt-2 px-3 py-2 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
+                  className="w-full mt-2 px-3 py-2 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
                 />
               )}
               {fieldErrors.category && (
@@ -334,7 +334,7 @@ export const StoreFormModal: React.FC<StoreFormModalProps> = ({
                 <select
                   value={formData.city}
                   onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 cursor-pointer"
+                  className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 cursor-pointer shadow-2xs"
                 >
                   {CITY_OPTIONS.map((c) => (
                     <option key={c} value={c}>
@@ -349,7 +349,7 @@ export const StoreFormModal: React.FC<StoreFormModalProps> = ({
                   value={formData.customCity}
                   onChange={(e) => setFormData({ ...formData, customCity: e.target.value })}
                   placeholder="Enter custom city"
-                  className="w-full mt-2 px-3 py-2 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
+                  className="w-full mt-2 px-3 py-2 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
                 />
               )}
               {fieldErrors.city && (
@@ -364,7 +364,7 @@ export const StoreFormModal: React.FC<StoreFormModalProps> = ({
               <label className="font-semibold text-slate-700 dark:text-zinc-300">
                 Physical Address <span className="text-amber-500">*</span>
               </label>
-              <span className="text-[11px] font-mono text-slate-400 dark:text-zinc-500">
+              <span className="text-[11px] font-mono text-slate-400 dark:text-zinc-500 tabular-nums">
                 {formData.address.length}/400 chars
               </span>
             </div>
@@ -376,8 +376,8 @@ export const StoreFormModal: React.FC<StoreFormModalProps> = ({
               className={`w-full p-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border ${
                 fieldErrors.address
                   ? 'border-rose-500'
-                  : 'border-slate-300 dark:border-zinc-800'
-              } text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 resize-none`}
+                  : 'border-slate-200 dark:border-zinc-800'
+              } text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 resize-none shadow-2xs`}
             />
             {fieldErrors.address && (
               <p className="text-[11px] text-rose-500 mt-1">{fieldErrors.address}</p>
@@ -390,7 +390,7 @@ export const StoreFormModal: React.FC<StoreFormModalProps> = ({
               <label className="font-semibold text-slate-700 dark:text-zinc-300">
                 Description & Business Specialties
               </label>
-              <span className="text-[11px] font-mono text-slate-400 dark:text-zinc-500">
+              <span className="text-[11px] font-mono text-slate-400 dark:text-zinc-500 tabular-nums">
                 {formData.description.length}/1000 chars
               </span>
             </div>
@@ -399,7 +399,7 @@ export const StoreFormModal: React.FC<StoreFormModalProps> = ({
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Tell customers about your products, freshly baked goods, services, specialties, and operating hours..."
-              className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 resize-none"
+              className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 resize-none shadow-2xs"
             />
           </div>
 
@@ -416,7 +416,7 @@ export const StoreFormModal: React.FC<StoreFormModalProps> = ({
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   placeholder="+91 98220 12345"
-                  className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
+                  className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 shadow-2xs"
                 />
               </div>
             </div>
@@ -435,8 +435,8 @@ export const StoreFormModal: React.FC<StoreFormModalProps> = ({
                   className={`w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border ${
                     fieldErrors.email
                       ? 'border-rose-500'
-                      : 'border-slate-300 dark:border-zinc-800'
-                  } text-slate-900 dark:text-white focus:outline-none focus:border-purple-500`}
+                      : 'border-slate-200 dark:border-zinc-800'
+                  } text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 shadow-2xs`}
                 />
               </div>
               {fieldErrors.email && (
@@ -458,7 +458,7 @@ export const StoreFormModal: React.FC<StoreFormModalProps> = ({
                   value={formData.website}
                   onChange={(e) => setFormData({ ...formData, website: e.target.value })}
                   placeholder="https://example.com"
-                  className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
+                  className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 shadow-2xs"
                 />
               </div>
             </div>
@@ -474,26 +474,26 @@ export const StoreFormModal: React.FC<StoreFormModalProps> = ({
                   value={formData.coverImage}
                   onChange={(e) => setFormData({ ...formData, coverImage: e.target.value })}
                   placeholder="https://images.unsplash.com/..."
-                  className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
+                  className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 shadow-2xs"
                 />
               </div>
             </div>
           </div>
 
           {/* Form Actions */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-zinc-800">
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-zinc-800">
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="py-2.5 px-4 rounded-xl border border-slate-300 dark:border-zinc-800 bg-slate-100 dark:bg-zinc-950 hover:bg-slate-200 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-300 font-semibold transition-colors"
+              className="py-2.5 px-4 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-300 font-semibold transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="py-2.5 px-5 rounded-xl bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white font-bold flex items-center gap-2 shadow-lg shadow-purple-600/20 disabled:opacity-50 transition-all"
+              className="py-2.5 px-5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold flex items-center gap-2 shadow-sm hover:shadow disabled:opacity-50 transition-all active:scale-98"
             >
               {isSubmitting ? (
                 <>

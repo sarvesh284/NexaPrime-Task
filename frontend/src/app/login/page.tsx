@@ -92,12 +92,12 @@ function LoginFormContent() {
 
   return (
     <div className="min-h-[85vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 transition-colors">
-      <div className="max-w-md w-full space-y-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-8 shadow-xl dark:shadow-2xl relative">
+      <div className="max-w-md w-full space-y-6 bg-white dark:bg-zinc-900 border border-slate-200/90 dark:border-zinc-800 rounded-3xl p-8 shadow-sm dark:shadow-xl relative">
         <div className="text-center">
-          <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center mx-auto mb-3">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center mx-auto mb-3 shadow-2xs">
             <Store className="w-6 h-6" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+          <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             Sign in to your account
           </h2>
           <p className="mt-1 text-xs text-slate-500 dark:text-zinc-400">
@@ -119,7 +119,7 @@ function LoginFormContent() {
               }}
               className={`py-1.5 px-2 rounded-lg font-medium transition-all flex flex-col sm:flex-row items-center justify-center gap-1 ${
                 selectedRole === 'ALL'
-                  ? 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-white shadow-sm font-semibold'
+                  ? 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-white shadow-xs font-semibold'
                   : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
@@ -135,7 +135,7 @@ function LoginFormContent() {
               }}
               className={`py-1.5 px-2 rounded-lg font-medium transition-all flex flex-col sm:flex-row items-center justify-center gap-1 ${
                 selectedRole === 'USER'
-                  ? 'bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 shadow-sm font-semibold'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 shadow-xs font-semibold'
                   : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
@@ -151,7 +151,7 @@ function LoginFormContent() {
               }}
               className={`py-1.5 px-2 rounded-lg font-medium transition-all flex flex-col sm:flex-row items-center justify-center gap-1 ${
                 selectedRole === 'STORE_OWNER'
-                  ? 'bg-purple-50 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/80 shadow-sm font-semibold'
+                  ? 'bg-purple-50 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/80 shadow-xs font-semibold'
                   : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
@@ -160,14 +160,14 @@ function LoginFormContent() {
             </button>
           </div>
           {selectedRole !== 'ALL' && (
-            <p className="text-[10px] text-center text-slate-500 dark:text-zinc-500 mt-1">
+            <p className="text-[10px] text-center text-slate-400 dark:text-zinc-500 mt-1">
               Account role verification active: Account must be registered as {ROLE_DISPLAY_NAMES[selectedRole]}
             </p>
           )}
         </div>
 
         {errorMessage && (
-          <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/80 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-200 text-xs flex items-start gap-2">
+          <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/80 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-200 text-xs flex items-start gap-2 shadow-xs">
             <ShieldAlert className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
             <span className="leading-relaxed">{errorMessage}</span>
           </div>
@@ -186,7 +186,7 @@ function LoginFormContent() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@example.com"
-                className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors placeholder:text-slate-400 dark:placeholder:text-zinc-600 shadow-sm"
+                className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors placeholder:text-slate-400 dark:placeholder:text-zinc-600 shadow-xs"
               />
             </div>
           </div>
@@ -198,7 +198,7 @@ function LoginFormContent() {
               </label>
               <Link
                 href="/forgot-password"
-                className="text-xs text-amber-600 dark:text-amber-400 hover:underline transition-colors"
+                className="text-xs text-amber-600 dark:text-amber-400 hover:underline transition-colors font-medium"
               >
                 Forgot password?
               </Link>
@@ -211,7 +211,7 @@ function LoginFormContent() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors placeholder:text-slate-400 dark:placeholder:text-zinc-600 shadow-sm"
+                className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors placeholder:text-slate-400 dark:placeholder:text-zinc-600 shadow-xs"
               />
             </div>
           </div>
@@ -219,7 +219,7 @@ function LoginFormContent() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 font-bold text-sm transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm transition-all shadow-md hover:shadow-lg shadow-amber-500/20 active:scale-98 disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isLoading ? (
               <>
@@ -233,22 +233,22 @@ function LoginFormContent() {
         </form>
 
         {/* Quick Presentation Demo Helper */}
-        <div className="pt-3 border-t border-slate-200 dark:border-zinc-800/80">
-          <p className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 text-center mb-2">
+        <div className="pt-3 border-t border-slate-100 dark:border-zinc-800/80">
+          <p className="text-[11px] font-semibold text-slate-400 dark:text-zinc-500 text-center mb-2">
             Demo Presentation Logins:
           </p>
           <div className="flex flex-wrap items-center justify-center gap-1.5 text-xs">
             <button
               type="button"
               onClick={() => handleSelectDemo('USER')}
-              className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 text-[11px] font-medium transition-colors"
+              className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 text-[11px] font-semibold transition-colors"
             >
               Demo User
             </button>
             <button
               type="button"
               onClick={() => handleSelectDemo('STORE_OWNER')}
-              className="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 dark:hover:bg-purple-900 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60 text-[11px] font-medium transition-colors"
+              className="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 dark:hover:bg-purple-900 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60 text-[11px] font-semibold transition-colors"
             >
               Store Owner
             </button>

@@ -107,21 +107,21 @@ export default function MyRatingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 py-10 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen py-10 px-4 sm:px-6 lg:px-8 transition-colors">
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
-        <div className="border-b border-zinc-800 pb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="border-b border-slate-200/90 dark:border-zinc-800 pb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
-              <Star className="w-7 h-7 text-amber-400 fill-amber-400" />
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+              <Star className="w-7 h-7 text-amber-500 fill-amber-500" />
               <span>My Review History</span>
             </h1>
-            <p className="text-zinc-400 text-sm mt-1">
+            <p className="text-slate-500 dark:text-zinc-400 text-xs sm:text-sm mt-1">
               Track, view, and update all the ratings and feedback you have submitted on RateLocal.
             </p>
           </div>
           <div className="flex items-center gap-2 self-start sm:self-auto">
-            <span className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300">
+            <span className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white dark:bg-zinc-900 border border-slate-200/90 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 shadow-xs tabular-nums">
               {pagination.total} Total {pagination.total === 1 ? 'Review' : 'Reviews'}
             </span>
           </div>
@@ -131,18 +131,18 @@ export default function MyRatingsPage() {
         {loading ? (
           <div className="py-16 text-center flex flex-col items-center justify-center gap-3">
             <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
-            <span className="text-sm text-zinc-400">Loading your review history...</span>
+            <span className="text-sm text-slate-400 dark:text-zinc-400">Loading your review history...</span>
           </div>
         ) : ratings.length === 0 ? (
-          <div className="py-16 text-center border border-dashed border-zinc-800 rounded-3xl p-8 bg-zinc-900/30 flex flex-col items-center justify-center">
-            <MessageSquare className="w-12 h-12 text-zinc-700 mb-3" />
-            <h3 className="text-lg font-bold text-white">No reviews yet</h3>
-            <p className="text-sm text-zinc-400 max-w-sm mt-1 mb-6">
-              You haven't submitted any store ratings yet. Explore nearby registered stores and share your feedback!
+          <div className="py-16 text-center border border-dashed border-slate-200 dark:border-zinc-800 rounded-3xl p-8 bg-slate-50/50 dark:bg-zinc-900/30 flex flex-col items-center justify-center">
+            <MessageSquare className="w-12 h-12 text-slate-300 dark:text-zinc-700 mb-3" />
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white">No reviews yet</h3>
+            <p className="text-sm text-slate-500 dark:text-zinc-400 max-w-sm mt-1 mb-6">
+              You haven&apos;t submitted any store ratings yet. Explore nearby registered stores and share your feedback!
             </p>
             <Link
               href="/stores"
-              className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-sm font-bold transition-all shadow-md shadow-amber-500/20"
+              className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-bold transition-all shadow-md hover:shadow-lg shadow-amber-500/20 active:scale-98"
             >
               Explore Stores
             </Link>
@@ -152,27 +152,27 @@ export default function MyRatingsPage() {
             {ratings.map((item) => (
               <div
                 key={item.id}
-                className="p-5 rounded-2xl bg-zinc-900/80 border border-zinc-800 hover:border-zinc-700/80 transition-all shadow-lg shadow-black/40"
+                className="p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200/90 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-700/80 transition-all shadow-sm"
               >
                 {/* Store Header & Score */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-zinc-800/60">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-zinc-800/60">
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <Link
                         href={`/stores/${item.storeId}`}
-                        className="text-base font-bold text-white hover:text-amber-400 flex items-center gap-1.5 transition-colors"
+                        className="text-base font-bold text-slate-900 dark:text-white hover:text-amber-600 dark:hover:text-amber-400 flex items-center gap-1.5 transition-colors"
                       >
                         <span>{item.storeName}</span>
                         <ExternalLink className="w-3.5 h-3.5 opacity-60" />
                       </Link>
-                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300 border border-zinc-700/50">
+                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700/50">
                         {item.storeCategory}
                       </span>
-                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700/50">
+                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 border border-slate-200 dark:border-zinc-700/50">
                         {item.storeCity}
                       </span>
                     </div>
-                    <p className="text-xs text-zinc-500 mt-1 flex items-center gap-1.5">
+                    <p className="text-xs text-slate-400 dark:text-zinc-500 mt-1 flex items-center gap-1.5">
                       <Building2 className="w-3.5 h-3.5" />
                       <span>{item.storeAddress}</span>
                     </p>
@@ -180,23 +180,23 @@ export default function MyRatingsPage() {
 
                   {/* Rating Stars Badge & Edit Button */}
                   <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                      <div className="flex items-center text-amber-400">
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
+                      <div className="flex items-center text-amber-500">
                         {[1, 2, 3, 4, 5].map((s) => (
                           <Star
                             key={s}
                             className={`w-3.5 h-3.5 ${
-                              s <= item.value ? 'fill-amber-400 text-amber-400' : 'text-zinc-600'
+                              s <= item.value ? 'fill-amber-400 text-amber-400' : 'text-slate-300 dark:text-zinc-600'
                             }`}
                           />
                         ))}
                       </div>
-                      <span className="text-sm font-bold text-amber-400">{item.value}.0</span>
+                      <span className="text-sm font-bold text-amber-700 dark:text-amber-400 tabular-nums">{item.value}.0</span>
                     </div>
 
                     <button
                       onClick={() => handleEditClick(item)}
-                      className="p-2 rounded-xl text-zinc-400 hover:text-amber-400 hover:bg-zinc-800 transition-colors border border-zinc-800"
+                      className="p-2 rounded-xl text-slate-400 hover:text-amber-600 dark:text-zinc-400 dark:hover:text-amber-400 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors border border-slate-200 dark:border-zinc-800"
                       title="Edit this review"
                     >
                       <Edit3 className="w-4 h-4" />
@@ -207,32 +207,32 @@ export default function MyRatingsPage() {
                 {/* Review Comment Body */}
                 <div className="py-3.5">
                   {item.comment ? (
-                    <p className="text-sm text-zinc-300 leading-relaxed italic">
-                      "{item.comment}"
+                    <p className="text-sm text-slate-700 dark:text-zinc-300 leading-relaxed italic">
+                      &quot;{item.comment}&quot;
                     </p>
                   ) : (
-                    <p className="text-xs text-zinc-500 italic">No written comment provided.</p>
+                    <p className="text-xs text-slate-400 dark:text-zinc-500 italic">No written comment provided.</p>
                   )}
                 </div>
 
                 {/* Owner Reply Banner if present */}
                 {item.ownerReply && (
-                  <div className="mt-2 p-3.5 rounded-xl bg-amber-950/20 border border-amber-800/40 relative">
+                  <div className="mt-2 p-3.5 rounded-xl bg-purple-50/70 dark:bg-zinc-950 border border-purple-200 dark:border-purple-500/30 relative">
                     <div className="flex items-center gap-2 mb-1.5">
-                      <ShieldCheck className="w-4 h-4 text-amber-400" />
-                      <span className="text-xs font-bold text-amber-400">Response from Store Owner</span>
-                      <span className="text-[10px] text-zinc-500">
+                      <ShieldCheck className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                      <span className="text-xs font-bold text-purple-800 dark:text-purple-300">Response from Store Owner</span>
+                      <span className="text-[10px] text-slate-400 dark:text-zinc-500 tabular-nums">
                         {new Date(item.ownerReply.createdAt).toLocaleDateString()}
                       </span>
                     </div>
-                    <p className="text-xs text-zinc-300 leading-relaxed pl-6">
+                    <p className="text-xs text-slate-700 dark:text-zinc-300 leading-relaxed pl-6">
                       {item.ownerReply.text}
                     </p>
                   </div>
                 )}
 
                 {/* Footer metadata */}
-                <div className="flex items-center justify-between text-[11px] text-zinc-500 pt-3 border-t border-zinc-800/50 mt-3">
+                <div className="flex items-center justify-between text-[11px] text-slate-400 dark:text-zinc-500 pt-3 border-t border-slate-100 dark:border-zinc-800/50 mt-3 tabular-nums">
                   <div className="flex items-center gap-4">
                     <span className="flex items-center gap-1">
                       <Calendar className="w-3.5 h-3.5" />
@@ -245,7 +245,7 @@ export default function MyRatingsPage() {
                       </span>
                     </span>
                     {item.helpfulCount > 0 && (
-                      <span className="flex items-center gap-1 text-emerald-400">
+                      <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
                         <ThumbsUp className="w-3.5 h-3.5" />
                         <span>{item.helpfulCount} people found helpful</span>
                       </span>
@@ -257,22 +257,22 @@ export default function MyRatingsPage() {
 
             {/* Pagination Controls */}
             {pagination.totalPages > 1 && (
-              <div className="flex items-center justify-between pt-6 border-t border-zinc-800">
-                <span className="text-xs text-zinc-400">
+              <div className="flex items-center justify-between pt-6 border-t border-slate-100 dark:border-zinc-800">
+                <span className="text-xs text-slate-500 dark:text-zinc-400 tabular-nums">
                   Page {pagination.page} of {pagination.totalPages}
                 </span>
                 <div className="flex items-center gap-2">
                   <button
                     disabled={pagination.page <= 1}
                     onClick={() => fetchMyRatings(pagination.page - 1)}
-                    className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 disabled:opacity-40 hover:bg-zinc-800 transition-colors"
+                    className="p-2 rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors shadow-2xs"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
                   <button
                     disabled={pagination.page >= pagination.totalPages}
                     onClick={() => fetchMyRatings(pagination.page + 1)}
-                    className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 disabled:opacity-40 hover:bg-zinc-800 transition-colors"
+                    className="p-2 rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors shadow-2xs"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>

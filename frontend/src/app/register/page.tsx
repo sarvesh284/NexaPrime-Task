@@ -184,12 +184,12 @@ function RegisterFormContent() {
 
   return (
     <div className="min-h-[90vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 transition-colors">
-      <div className="max-w-lg w-full space-y-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-8 shadow-xl dark:shadow-2xl relative">
+      <div className="max-w-lg w-full space-y-6 bg-white dark:bg-zinc-900 border border-slate-200/90 dark:border-zinc-800 rounded-3xl p-8 shadow-sm dark:shadow-xl relative">
         <div className="text-center">
-          <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center mx-auto mb-3">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center mx-auto mb-3 shadow-2xs">
             <Store className="w-6 h-6" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+          <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             Create your account
           </h2>
           <p className="mt-1 text-xs text-slate-500 dark:text-zinc-400">
@@ -210,7 +210,7 @@ function RegisterFormContent() {
               onClick={() => handleRoleChange('USER')}
               className={`py-2 px-3 rounded-lg font-semibold transition-all flex items-center justify-center gap-1.5 ${
                 activeRole === 'USER'
-                  ? 'bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 shadow-sm'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 shadow-xs'
                   : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
@@ -223,7 +223,7 @@ function RegisterFormContent() {
               onClick={() => handleRoleChange('STORE_OWNER')}
               className={`py-2 px-3 rounded-lg font-semibold transition-all flex items-center justify-center gap-1.5 ${
                 activeRole === 'STORE_OWNER'
-                  ? 'bg-purple-50 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/80 shadow-sm'
+                  ? 'bg-purple-50 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/80 shadow-xs'
                   : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
@@ -234,7 +234,7 @@ function RegisterFormContent() {
         </div>
 
         {serverError && (
-          <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/80 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-200 text-xs text-center font-medium">
+          <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/80 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-200 text-xs text-center font-medium shadow-xs">
             {serverError}
           </div>
         )}
@@ -263,9 +263,9 @@ function RegisterFormContent() {
                 {...register('name')}
                 type="text"
                 placeholder={activeRole === 'STORE_OWNER' ? 'Rajesh Patil' : 'Alexander Montgomery'}
-                className={`w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 dark:bg-zinc-950 border ${
-                  errors.name ? 'border-rose-500' : 'border-slate-300 dark:border-zinc-800'
-                } text-slate-900 dark:text-white text-sm focus:outline-none focus:border-amber-500 transition-colors placeholder:text-slate-400 dark:placeholder:text-zinc-600 shadow-sm`}
+                className={`w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border ${
+                  errors.name ? 'border-rose-500' : 'border-slate-200 dark:border-zinc-800'
+                } text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors placeholder:text-slate-400 dark:placeholder:text-zinc-600 shadow-xs`}
               />
             </div>
             {errors.name && (
@@ -284,9 +284,9 @@ function RegisterFormContent() {
                 {...register('email')}
                 type="email"
                 placeholder={activeRole === 'STORE_OWNER' ? 'owner@business.com' : 'customer@example.com'}
-                className={`w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 dark:bg-zinc-950 border ${
-                  errors.email ? 'border-rose-500' : 'border-slate-300 dark:border-zinc-800'
-                } text-slate-900 dark:text-white text-sm focus:outline-none focus:border-amber-500 transition-colors placeholder:text-slate-400 dark:placeholder:text-zinc-600 shadow-sm`}
+                className={`w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border ${
+                  errors.email ? 'border-rose-500' : 'border-slate-200 dark:border-zinc-800'
+                } text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors placeholder:text-slate-400 dark:placeholder:text-zinc-600 shadow-xs`}
               />
             </div>
             {errors.email && (
@@ -308,9 +308,9 @@ function RegisterFormContent() {
                 {...register('password')}
                 type="password"
                 placeholder="••••••••"
-                className={`w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 dark:bg-zinc-950 border ${
-                  errors.password ? 'border-rose-500' : 'border-slate-300 dark:border-zinc-800'
-                } text-slate-900 dark:text-white text-sm focus:outline-none focus:border-amber-500 transition-colors placeholder:text-slate-400 dark:placeholder:text-zinc-600 shadow-sm`}
+                className={`w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border ${
+                  errors.password ? 'border-rose-500' : 'border-slate-200 dark:border-zinc-800'
+                } text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors placeholder:text-slate-400 dark:placeholder:text-zinc-600 shadow-xs`}
               />
             </div>
             {errors.password && (
@@ -321,7 +321,7 @@ function RegisterFormContent() {
             <div className="mt-2.5 p-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950/70 border border-slate-200 dark:border-zinc-800/80 grid grid-cols-1 sm:grid-cols-3 gap-1.5 text-[11px]">
               <div
                 className={`flex items-center gap-1.5 ${
-                  hasLength ? 'text-emerald-600 dark:text-emerald-400 font-medium' : 'text-slate-400 dark:text-zinc-500'
+                  hasLength ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-400 dark:text-zinc-500'
                 }`}
               >
                 <CheckCircle2 className="w-3 h-3 shrink-0" />
@@ -329,7 +329,7 @@ function RegisterFormContent() {
               </div>
               <div
                 className={`flex items-center gap-1.5 ${
-                  hasUpper ? 'text-emerald-600 dark:text-emerald-400 font-medium' : 'text-slate-400 dark:text-zinc-500'
+                  hasUpper ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-400 dark:text-zinc-500'
                 }`}
               >
                 <CheckCircle2 className="w-3 h-3 shrink-0" />
@@ -337,7 +337,7 @@ function RegisterFormContent() {
               </div>
               <div
                 className={`flex items-center gap-1.5 ${
-                  hasSpecial ? 'text-emerald-600 dark:text-emerald-400 font-medium' : 'text-slate-400 dark:text-zinc-500'
+                  hasSpecial ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-400 dark:text-zinc-500'
                 }`}
               >
                 <CheckCircle2 className="w-3 h-3 shrink-0" />
@@ -363,9 +363,9 @@ function RegisterFormContent() {
                 {...register('address')}
                 rows={2}
                 placeholder={activeRole === 'STORE_OWNER' ? 'Shop 4, Ferguson College Road, Deccan Gymkhana, Pune, Maharashtra 411004' : '100 Discovery Boulevard, Suite 400, Pune, Maharashtra 411001'}
-                className={`w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 dark:bg-zinc-950 border ${
-                  errors.address ? 'border-rose-500' : 'border-slate-300 dark:border-zinc-800'
-                } text-slate-900 dark:text-white text-sm focus:outline-none focus:border-amber-500 transition-colors resize-none placeholder:text-slate-400 dark:placeholder:text-zinc-600 shadow-sm`}
+                className={`w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border ${
+                  errors.address ? 'border-rose-500' : 'border-slate-200 dark:border-zinc-800'
+                } text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors resize-none placeholder:text-slate-400 dark:placeholder:text-zinc-600 shadow-xs`}
               />
             </div>
             {errors.address && (
@@ -376,7 +376,7 @@ function RegisterFormContent() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 font-bold text-sm transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50 flex items-center justify-center gap-2 mt-4"
+            className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm transition-all shadow-md hover:shadow-lg shadow-amber-500/20 active:scale-98 disabled:opacity-50 flex items-center justify-center gap-2 mt-4"
           >
             {isLoading ? (
               <>

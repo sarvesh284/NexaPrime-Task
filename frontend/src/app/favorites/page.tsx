@@ -84,24 +84,24 @@ export default function FavoritesPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full flex-1 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full flex-1 space-y-8 transition-colors">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-zinc-800 gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-slate-200/90 dark:border-zinc-800 gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-2">
             <Link
               href="/stores"
-              className="text-xs font-semibold text-zinc-400 hover:text-white flex items-center gap-1"
+              className="text-xs font-semibold text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-white flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 shadow-xs hover:border-slate-300 dark:hover:border-zinc-700 transition-all w-fit"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back to Directory</span>
             </Link>
           </div>
-          <h1 className="text-3xl font-black text-white tracking-tight flex items-center gap-2.5">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
             <Heart className="w-7 h-7 text-rose-500 fill-rose-500" />
             <span>My Favorite Stores</span>
           </h1>
-          <p className="text-zinc-400 text-xs mt-1">
+          <p className="text-slate-500 dark:text-zinc-400 text-xs sm:text-sm mt-1">
             Your personal saved collection of top rated stores
           </p>
         </div>
@@ -109,19 +109,19 @@ export default function FavoritesPage() {
 
       {isLoading ? (
         <div className="py-20 flex justify-center">
-          <Loader2 className="w-8 h-8 text-amber-400 animate-spin" />
+          <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
         </div>
       ) : favorites.length === 0 ? (
-        <div className="py-20 text-center rounded-3xl bg-zinc-900/40 border border-zinc-800 space-y-3">
-          <StoreIcon className="w-12 h-12 text-zinc-600 mx-auto" />
-          <h3 className="text-base font-bold text-white">No favorites saved yet</h3>
-          <p className="text-xs text-zinc-400 max-w-sm mx-auto">
+        <div className="py-20 text-center rounded-3xl bg-white dark:bg-zinc-900 border border-slate-200/90 dark:border-zinc-800 shadow-sm space-y-3">
+          <StoreIcon className="w-12 h-12 text-slate-300 dark:text-zinc-600 mx-auto" />
+          <h3 className="text-base font-bold text-slate-900 dark:text-white">No favorites saved yet</h3>
+          <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-sm mx-auto">
             Explore the store directory and click the heart icon on any store to bookmark it here.
           </p>
           <div className="pt-2">
             <Link
               href="/stores"
-              className="inline-block py-2.5 px-5 rounded-xl bg-amber-500 text-zinc-950 font-bold text-xs hover:bg-amber-400 transition-colors"
+              className="inline-block py-2.5 px-5 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs hover:bg-amber-400 shadow-md hover:shadow-lg shadow-amber-500/20 active:scale-98 transition-all"
             >
               Explore Stores
             </Link>
