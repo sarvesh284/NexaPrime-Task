@@ -621,27 +621,48 @@ export default function StoresPage() {
             </div>
 
             {/* Scrollable Synchronized Store Cards List */}
-            <div className="lg:col-span-5 flex flex-col space-y-4 max-h-[680px] overflow-y-auto pr-1">
-              <div className="flex items-center justify-between px-1 py-1">
-                <span className="text-xs font-bold text-slate-700 dark:text-zinc-300">
-                  {displayedStores.length} Stores Found
-                </span>
-                <span className="text-[11px] text-slate-500 dark:text-zinc-500">
-                  Click a store card to pan on map
+            <div className="lg:col-span-5 h-[450px] lg:h-[680px] flex flex-col rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-50/60 dark:bg-zinc-900/40 p-3 sm:p-4 shadow-sm overflow-hidden">
+              <div className="flex items-center justify-between pb-3 px-1 border-b border-slate-200 dark:border-zinc-800/80 shrink-0 mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-xs font-bold text-slate-800 dark:text-zinc-200">
+                    {displayedStores.length} Stores in View
+                  </span>
+                </div>
+                <span className="text-[11px] text-slate-500 dark:text-zinc-400">
+                  Click card to pan map
                 </span>
               </div>
 
-              {displayedStores.map((store) => (
-                <StoreCard
-                  key={store.id}
-                  store={store}
-                  isSelected={store.id === selectedStoreId}
-                  onCardClick={(s) => setSelectedStoreId(s.id)}
-                  distanceKm={(store as any).distanceKm}
-                  onOpenRating={(s) => setSelectedStoreForRating(s)}
-                  onToggleFavorite={handleToggleFavorite}
-                />
-              ))}
+              {displayedStores.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-slate-500 dark:text-zinc-400">
+                  <StoreIcon className="w-10 h-10 text-slate-400 dark:text-zinc-600 mb-2" />
+                  <p className="text-sm font-semibold text-slate-700 dark:text-zinc-300">
+                    No stores match current filters
+                  </p>
+                  <button
+                    onClick={resetFilters}
+                    className="mt-2 text-xs text-amber-600 dark:text-amber-400 hover:underline font-semibold"
+                  >
+                    Reset filters
+                  </button>
+                </div>
+              ) : (
+                <div className="flex-1 overflow-y-auto space-y-3 pr-1 min-h-0">
+                  {displayedStores.map((store) => (
+                    <StoreCard
+                      key={store.id}
+                      store={store}
+                      layout="horizontal"
+                      isSelected={store.id === selectedStoreId}
+                      onCardClick={(s) => setSelectedStoreId(s.id)}
+                      distanceKm={(store as any).distanceKm}
+                      onOpenRating={(s) => setSelectedStoreForRating(s)}
+                      onToggleFavorite={handleToggleFavorite}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         ) : viewMode === 'map' ? (
