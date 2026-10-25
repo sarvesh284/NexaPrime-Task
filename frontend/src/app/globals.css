@@ -119,3 +119,31 @@ body {
   margin: 0 !important;
   line-height: inherit;
 }
+
+/* Landscape Doodle Wallpaper Theme Backdrop */
+.theme-wallpaper-layer {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  pointer-events: none;
+  background-image: url('/wallpaper-landscape.jpg');
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  opacity: 0.55;
+  transition: opacity 0.25s ease, filter 0.25s ease;
+}
+
+@media (min-aspect-ratio: 16/9) {
+  .theme-wallpaper-layer {
+    background-size: 100% auto;
+  }
+}
+
+.dark .theme-wallpaper-layer {
+  opacity: 0.13;
+  filter: invert(1) brightness(0.95) contrast(1.25);
+}
+

@@ -38,14 +38,16 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 flex flex-col font-sans selection:bg-amber-500 selection:text-black transition-colors duration-150">
+      <body className="min-h-screen bg-slate-50/70 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 flex flex-col font-sans selection:bg-amber-500 selection:text-black transition-colors duration-150 relative">
+        {/* Landscape Wallpaper Theme Backdrop */}
+        <div className="theme-wallpaper-layer" aria-hidden="true" />
         <ThemeProvider>
           <AuthProvider>
             <ToastProvider>
               <Suspense fallback={<div className="h-16 border-b border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950" />}>
                 <Navbar />
               </Suspense>
-              <main className="flex-1 flex flex-col">
+              <main className="flex-1 flex flex-col relative z-10">
                 <Suspense fallback={<div className="flex-1 flex items-center justify-center p-20"><div className="w-8 h-8 rounded-full border-2 border-amber-400 border-t-transparent animate-spin" /></div>}>
                   {children}
                 </Suspense>

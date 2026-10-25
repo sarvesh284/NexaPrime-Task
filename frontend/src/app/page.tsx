@@ -87,7 +87,7 @@ export default function HomePage() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
-      <section className="relative overflow-hidden pt-16 pb-20 border-b border-slate-200/80 dark:border-zinc-800/80 bg-gradient-to-b from-white via-slate-50/50 to-slate-100/60 dark:from-zinc-950 dark:via-zinc-900/40 dark:to-zinc-950 transition-colors">
+      <section className="relative overflow-hidden pt-16 pb-20 border-b border-slate-200/80 dark:border-zinc-800/80 bg-gradient-to-b from-white/75 via-slate-50/50 to-slate-100/60 dark:from-zinc-950/80 dark:via-zinc-900/40 dark:to-zinc-950/80 backdrop-blur-2xs transition-colors">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(245,158,11,0.08),rgba(255,255,255,0))] pointer-events-none" />
 
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
