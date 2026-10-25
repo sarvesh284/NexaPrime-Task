@@ -27,6 +27,11 @@ import {
   Camera,
   UploadCloud,
   Check,
+  Plus,
+  Edit3,
+  ExternalLink,
+  ShieldCheck,
+  Store as StoreIcon,
 } from 'lucide-react';
 import { api, getAssetUrl } from '../../../lib/api';
 import {
@@ -38,6 +43,8 @@ import {
   PhotoItem,
 } from '../../../types';
 import { PhotoUploadModal } from '../../../components/PhotoUploadModal';
+import { StoreFormModal } from '../../../components/StoreFormModal';
+import { DeleteStoreModal } from '../../../components/DeleteStoreModal';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../components/Toast';
 
@@ -71,13 +78,32 @@ export default function OwnerDashboardPage() {
   const [isExporting, setIsExporting] = useState(false);
 
   // Owner Photos State
-  const [activeTab, setActiveTab] = useState<'analytics' | 'photos'>('analytics');
+  const [activeTab, setActiveTab] = useState<'stores' | 'analytics' | 'photos'>('stores');
   const [ownerPhotos, setOwnerPhotos] = useState<PhotoItem[]>([]);
   const [loadingOwnerPhotos, setLoadingOwnerPhotos] = useState(false);
   const [photoUploadModalOpen, setPhotoUploadModalOpen] = useState(false);
   const [activeStoreForUpload, setActiveStoreForUpload] = useState<Store | null>(null);
 
-  // Search debounce
+  // Store Management State
+  const [ownerStores, setOwnerStores] = useState<Store[]>([]);
+  const [loadingOwnerStores, setLoadingOwnerStores] = useState(false);
+  const [storeSearch, setStoreSearch] = useState('');
+  const [debouncedStoreSearch, setDebouncedStoreSearch] = useState('');
+  const [storeCategoryFilter, setStoreCategoryFilter] = useState('');
+  const [storeStatusFilter, setStoreStatusFilter] = useState<'all' | 'active' | 'archived'>('active');
+  const [createStoreModalOpen, setCreateStoreModalOpen] = useState(false);
+  const [editStoreModal, setEditStoreModal] = useState<Store | null>(null);
+  const [deleteStoreModal, setDeleteStoreModal] = useState<Store | null>(null);
+
+  // Store search debounce
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedStoreSearch(storeSearch);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [storeSearch]);
+
+  // Search debounce for customer ratings table
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(search);
@@ -87,28 +113,67 @@ export default function OwnerDashboardPage() {
   }, [search]);
 
   // Fetch Dashboard Stats Overview
-  useEffect(() => {
+  const fetchDashboardOverview = useCallback(async () => {
     if (authLoading || user?.role !== 'STORE_OWNER') return;
-    let isMounted = true;
-
-    api
-      .get<{ dashboard: OwnerDashboardData }>('/owner/dashboard')
-      .then((res) => {
-        if (isMounted) {
-          if (res.data?.dashboard) {
-            setDashboard(res.data.dashboard);
-          }
-          setLoadingDashboard(false);
-        }
-      })
-      .catch(() => {
-        if (isMounted) setLoadingDashboard(false);
-      });
-
-    return () => {
-      isMounted = false;
-    };
+    try {
+      setLoadingDashboard(true);
+      const res = await api.get<{ dashboard: OwnerDashboardData }>('/owner/dashboard');
+      if (res.data?.dashboard) {
+        setDashboard(res.data.dashboard);
+      }
+    } catch (err) {
+      console.error('Failed to load dashboard overview:', err);
+    } finally {
+      setLoadingDashboard(false);
+    }
   }, [authLoading, user]);
+
+  // Fetch Owner Stores List
+  const fetchOwnerStores = useCallback(async () => {
+    if (authLoading || user?.role !== 'STORE_OWNER') return;
+    try {
+      setLoadingOwnerStores(true);
+      const res = await api.get<{ stores: Store[] }>('/owner/stores', {
+        params: {
+          status: storeStatusFilter,
+          search: debouncedStoreSearch || undefined,
+          category: storeCategoryFilter || undefined,
+          limit: 100,
+        },
+      });
+      if (res.data?.stores) {
+        setOwnerStores(res.data.stores);
+      }
+    } catch (err) {
+      console.error('Failed to load owner stores:', err);
+    } finally {
+      setLoadingOwnerStores(false);
+    }
+  }, [authLoading, user, storeStatusFilter, debouncedStoreSearch, storeCategoryFilter]);
+
+  useEffect(() => {
+    fetchDashboardOverview();
+  }, [fetchDashboardOverview]);
+
+  useEffect(() => {
+    fetchOwnerStores();
+  }, [fetchOwnerStores]);
+
+  const handleStoreSaved = (savedStore: Store, isEdit: boolean) => {
+    fetchOwnerStores();
+    fetchDashboardOverview();
+    if (!isEdit && !selectedStoreId) {
+      setSelectedStoreId(savedStore.id);
+    }
+  };
+
+  const handleStoreDeleted = (deletedStoreId: string) => {
+    fetchOwnerStores();
+    fetchDashboardOverview();
+    if (selectedStoreId === deletedStoreId) {
+      setSelectedStoreId('');
+    }
+  };
 
   // Fetch Advanced Analytics
   useEffect(() => {
@@ -300,70 +365,7 @@ export default function OwnerDashboardPage() {
     }
   };
 
-  // Edit Store Profile Modal State & Handlers (O2)
-  const [editStoreModal, setEditStoreModal] = useState<Store | null>(null);
-  const [editStoreForm, setEditStoreForm] = useState({
-    name: '',
-    description: '',
-    phone: '',
-    website: '',
-    address: '',
-  });
-  const [isSubmittingStoreProfile, setIsSubmittingStoreProfile] = useState(false);
 
-  const openEditStoreModal = (store: Store) => {
-    setEditStoreModal(store);
-    setEditStoreForm({
-      name: store.name || '',
-      description: store.description || '',
-      phone: store.phone || '',
-      website: store.website || '',
-      address: store.address || '',
-    });
-  };
-
-  const handleSaveStoreProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editStoreModal) return;
-    if (!editStoreForm.name.trim() || !editStoreForm.address.trim()) {
-      toastError('Store name and address are required.');
-      return;
-    }
-
-    try {
-      setIsSubmittingStoreProfile(true);
-      const res = await api.patch<{ store: Store; message: string }>(
-        `/owner/stores/${editStoreModal.id}`,
-        editStoreForm
-      );
-
-      if (dashboard) {
-        setDashboard({
-          ...dashboard,
-          stores: dashboard.stores.map((s) =>
-            s.id === editStoreModal.id
-              ? {
-                  ...s,
-                  name: editStoreForm.name.trim(),
-                  address: editStoreForm.address.trim(),
-                  description: editStoreForm.description.trim(),
-                  phone: editStoreForm.phone.trim(),
-                  website: editStoreForm.website.trim(),
-                }
-              : s
-          ),
-        });
-      }
-
-      success(res.data?.message || 'Store profile updated successfully.');
-      setEditStoreModal(null);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to update store profile.';
-      toastError(msg);
-    } finally {
-      setIsSubmittingStoreProfile(false);
-    }
-  };
 
   const fetchOwnerPhotos = useCallback(async (storeIdToFetch?: string) => {
     const targetStoreId = storeIdToFetch || selectedStoreId || dashboard?.stores?.[0]?.id;
@@ -488,12 +490,23 @@ export default function OwnerDashboardPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => setCreateStoreModalOpen(true)}
+            className="py-2 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 font-bold text-xs flex items-center gap-2 transition-all shadow-lg shadow-amber-500/20"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Register New Store</span>
+          </button>
+
           <button
             onClick={() => {
-              const currentStore = dashboard?.stores?.find((s) => s.id === selectedStoreId) || dashboard?.stores?.[0];
+              const currentStore =
+                ownerStores.find((s) => s.id === selectedStoreId) ||
+                ownerStores[0] ||
+                (dashboard?.stores?.[0] as any);
               if (currentStore) {
-                openEditStoreModal(currentStore as any);
+                setEditStoreModal(currentStore);
               } else {
                 toastError('No owned stores found to edit.');
               }
@@ -515,36 +528,7 @@ export default function OwnerDashboardPage() {
         </div>
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-zinc-800 pb-3">
-        <button
-          onClick={() => setActiveTab('analytics')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-            activeTab === 'analytics'
-              ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/20'
-              : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
-          }`}
-        >
-          <BarChart3 className="w-4 h-4" />
-          <span>Analytics & Customer Reviews</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('photos')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-            activeTab === 'photos'
-              ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/20'
-              : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
-          }`}
-        >
-          <Camera className="w-4 h-4" />
-          <span>Store Photo Gallery Management</span>
-        </button>
-      </div>
-
-      {activeTab === 'analytics' && (
-        <div className="space-y-8">
-          {/* KPI Cards */}
+      {/* Global Overview KPI Cards */}
       {loadingDashboard ? (
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
@@ -595,6 +579,300 @@ export default function OwnerDashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Navigation Tabs */}
+      <div className="flex items-center gap-2 border-b border-zinc-800 pb-3 overflow-x-auto">
+        <button
+          onClick={() => setActiveTab('stores')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+            activeTab === 'stores'
+              ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/20'
+              : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
+          }`}
+        >
+          <Building2 className="w-4 h-4" />
+          <span>My Stores / Management ({dashboard?.totalStores ?? ownerStores.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('analytics')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+            activeTab === 'analytics'
+              ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/20'
+              : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
+          }`}
+        >
+          <BarChart3 className="w-4 h-4" />
+          <span>Analytics & Customer Reviews</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('photos')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+            activeTab === 'photos'
+              ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/20'
+              : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
+          }`}
+        >
+          <Camera className="w-4 h-4" />
+          <span>Store Photo Gallery Management</span>
+        </button>
+      </div>
+
+      {/* Tab: Store Management */}
+      {activeTab === 'stores' && (
+        <div className="space-y-6 animate-fade-in">
+          {/* Store Management Filters Toolbar */}
+          <div className="p-4 rounded-2xl bg-zinc-900 border border-zinc-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex flex-wrap items-center gap-3 flex-1">
+              <div className="relative min-w-[200px] flex-1 max-w-sm">
+                <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  value={storeSearch}
+                  onChange={(e) => setStoreSearch(e.target.value)}
+                  placeholder="Search stores by name, city, address..."
+                  className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white placeholder:text-zinc-600 focus:outline-none focus:border-purple-400"
+                />
+              </div>
+
+              {/* Category Filter */}
+              <select
+                value={storeCategoryFilter}
+                onChange={(e) => setStoreCategoryFilter(e.target.value)}
+                className="py-1.5 px-3 rounded-xl bg-zinc-950 border border-zinc-800 text-white focus:outline-none focus:border-purple-400 cursor-pointer"
+              >
+                <option value="">All Categories</option>
+                {Array.from(new Set(ownerStores.map((s) => s.category).filter(Boolean))).map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+
+              {/* Status Filter */}
+              <select
+                value={storeStatusFilter}
+                onChange={(e) => setStoreStatusFilter(e.target.value as any)}
+                className="py-1.5 px-3 rounded-xl bg-zinc-950 border border-zinc-800 text-white focus:outline-none focus:border-purple-400 cursor-pointer"
+              >
+                <option value="active">Active Locations Only</option>
+                <option value="archived">Archived Locations</option>
+                <option value="all">All Statuses</option>
+              </select>
+            </div>
+
+            <button
+              onClick={() => setCreateStoreModalOpen(true)}
+              className="py-2 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 font-bold flex items-center gap-1.5 shadow-lg shadow-amber-500/20 transition-all ml-auto"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Register New Store</span>
+            </button>
+          </div>
+
+          {/* Stores Grid / Cards */}
+          {loadingOwnerStores ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-64 rounded-2xl bg-zinc-900/60 border border-zinc-800 animate-pulse" />
+              ))}
+            </div>
+          ) : ownerStores.length === 0 ? (
+            <div className="p-12 rounded-2xl bg-zinc-900 border border-zinc-800 text-center space-y-4">
+              <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center mx-auto">
+                <Building2 className="w-7 h-7" />
+              </div>
+              <div className="max-w-md mx-auto space-y-1.5">
+                <h3 className="text-base font-bold text-white">
+                  {storeSearch || storeCategoryFilter || storeStatusFilter !== 'active'
+                    ? 'No stores match your filters'
+                    : 'No Stores Registered Yet'}
+                </h3>
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  {storeSearch || storeCategoryFilter || storeStatusFilter !== 'active'
+                    ? 'Try adjusting your search keywords or resetting the status and category filters.'
+                    : 'Get started by registering your first store location on RateLocal to collect customer ratings and view analytics.'}
+                </p>
+              </div>
+              {storeSearch || storeCategoryFilter || storeStatusFilter !== 'active' ? (
+                <button
+                  onClick={() => {
+                    setStoreSearch('');
+                    setStoreCategoryFilter('');
+                    setStoreStatusFilter('active');
+                  }}
+                  className="py-2 px-4 rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-300 hover:text-white text-xs font-semibold"
+                >
+                  Reset Filters
+                </button>
+              ) : (
+                <button
+                  onClick={() => setCreateStoreModalOpen(true)}
+                  className="py-2.5 px-5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 font-bold text-xs shadow-lg shadow-amber-500/20 transition-all inline-flex items-center gap-1.5"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Register First Store</span>
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {ownerStores.map((s) => (
+                <div
+                  key={s.id}
+                  className="rounded-2xl bg-zinc-900 border border-zinc-800 overflow-hidden shadow-xl flex flex-col justify-between group hover:border-purple-500/40 transition-all"
+                >
+                  {/* Card Media Header */}
+                  <div className="relative h-40 bg-zinc-950 overflow-hidden">
+                    {s.coverImage ? (
+                      <img
+                        src={getAssetUrl(s.coverImage)}
+                        alt={s.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-zinc-950 via-zinc-900 to-purple-950/30 text-zinc-600">
+                        <Building2 className="w-10 h-10 text-zinc-700 mb-1" />
+                        <span className="text-[11px] font-medium text-zinc-500">No cover photo set</span>
+                      </div>
+                    )}
+                    {/* Status Pill Badge */}
+                    <div className="absolute top-3 left-3 flex items-center gap-1.5">
+                      {s.isActive !== false ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-800/80 backdrop-blur-md">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          Active
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-zinc-900/90 text-amber-300 border border-amber-800/80 backdrop-blur-md">
+                          Archived
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Category & City Pills */}
+                    <div className="absolute top-3 right-3 flex items-center gap-1">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-black/60 text-zinc-300 border border-zinc-700/60 backdrop-blur-md">
+                        {s.category || 'Retail'}
+                      </span>
+                      {s.city && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-950/80 text-purple-300 border border-purple-800/80 backdrop-blur-md">
+                          {s.city}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Card Content */}
+                  <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <h4 className="text-base font-bold text-white group-hover:text-purple-300 transition-colors line-clamp-1">
+                          {s.name}
+                        </h4>
+                        <div className="flex items-center gap-1 shrink-0 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-lg text-amber-400 font-bold text-xs">
+                          <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                          <span>{s.averageRating ? s.averageRating.toFixed(1) : '0.0'}</span>
+                        </div>
+                      </div>
+
+                      <p className="text-[11px] text-zinc-400 flex items-start gap-1.5 line-clamp-2">
+                        <MapPin className="w-3.5 h-3.5 text-zinc-500 shrink-0 mt-0.5" />
+                        <span>{s.address}</span>
+                      </p>
+
+                      {s.description && (
+                        <p className="text-[11px] text-zinc-500 line-clamp-2 italic">
+                          "{s.description}"
+                        </p>
+                      )}
+
+                      {/* Contact Badges */}
+                      <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-zinc-400">
+                        {s.phone && (
+                          <span className="flex items-center gap-1 text-zinc-400 bg-zinc-950 px-2 py-0.5 rounded-md border border-zinc-800">
+                            <Phone className="w-3 h-3 text-zinc-500" />
+                            <span>{s.phone}</span>
+                          </span>
+                        )}
+                        {s.website && (
+                          <a
+                            href={s.website.startsWith('http') ? s.website : `https://${s.website}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-purple-400 hover:underline bg-zinc-950 px-2 py-0.5 rounded-md border border-zinc-800"
+                          >
+                            <Globe className="w-3 h-3" />
+                            <span className="truncate max-w-[120px]">Visit Site</span>
+                          </a>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Stats & Quick Actions */}
+                    <div className="pt-3 border-t border-zinc-800 space-y-3">
+                      <div className="flex items-center justify-between text-xs text-zinc-400">
+                        <span>Customer Ratings</span>
+                        <span className="font-bold text-white">{s.ratingCount ?? 0} total</span>
+                      </div>
+
+                      {/* Action Buttons Toolbar */}
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <Link
+                          href={`/stores/${s.id}`}
+                          target="_blank"
+                          className="py-1.5 px-2.5 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-zinc-300 font-semibold border border-zinc-800 flex items-center justify-center gap-1.5 transition-colors"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>View Public</span>
+                        </Link>
+
+                        <button
+                          onClick={() => setEditStoreModal(s)}
+                          className="py-1.5 px-2.5 rounded-xl bg-purple-600/10 hover:bg-purple-600/20 text-purple-300 font-semibold border border-purple-500/20 flex items-center justify-center gap-1.5 transition-colors"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                          <span>Edit Details</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setSelectedStoreId(s.id);
+                            setActiveTab('analytics');
+                          }}
+                          className="py-1.5 px-2.5 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-zinc-300 font-semibold border border-zinc-800 flex items-center justify-center gap-1.5 transition-colors"
+                        >
+                          <BarChart3 className="w-3.5 h-3.5" />
+                          <span>Analytics</span>
+                        </button>
+
+                        {s.isActive !== false ? (
+                          <button
+                            onClick={() => setDeleteStoreModal(s)}
+                            className="py-1.5 px-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 font-semibold border border-rose-500/20 flex items-center justify-center gap-1.5 transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Archive Store</span>
+                          </button>
+                        ) : (
+                          <span className="py-1.5 px-2.5 rounded-xl bg-zinc-950 text-zinc-600 font-semibold border border-zinc-800 flex items-center justify-center text-[10px]">
+                            Archived
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab: Analytics & Customer Reviews */}
+      {activeTab === 'analytics' && (
+        <div className="space-y-8 animate-fade-in">
 
       {/* Analytics Filter Toolbar */}
       <div className="p-4 rounded-2xl bg-zinc-900 border border-zinc-800 flex flex-wrap items-center gap-3 text-xs">
@@ -1159,101 +1437,30 @@ export default function OwnerDashboardPage() {
         </div>
       )}
 
-      {/* Edit Store Profile Modal (O2) */}
-      {editStoreModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="relative w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl p-6 text-white space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
-              <div className="flex items-center gap-2">
-                <Building2 className="w-5 h-5 text-purple-400" />
-                <h3 className="text-base font-bold text-white">Edit Store Profile</h3>
-              </div>
-              <button
-                onClick={() => setEditStoreModal(null)}
-                className="text-zinc-400 hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      {/* Create / Register Store Modal */}
+      <StoreFormModal
+        isOpen={createStoreModalOpen}
+        mode="create"
+        onClose={() => setCreateStoreModalOpen(false)}
+        onSuccess={(savedStore) => handleStoreSaved(savedStore, false)}
+      />
 
-            <form onSubmit={handleSaveStoreProfile} className="space-y-3.5 text-xs">
-              <div>
-                <label className="block font-semibold text-zinc-300 mb-1">Store Name</label>
-                <input
-                  type="text"
-                  value={editStoreForm.name}
-                  onChange={(e) => setEditStoreForm({ ...editStoreForm, name: e.target.value })}
-                  required
-                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white focus:outline-none focus:border-purple-400"
-                />
-              </div>
+      {/* Edit Store Modal */}
+      <StoreFormModal
+        isOpen={!!editStoreModal}
+        mode="edit"
+        store={editStoreModal}
+        onClose={() => setEditStoreModal(null)}
+        onSuccess={(savedStore) => handleStoreSaved(savedStore, true)}
+      />
 
-              <div>
-                <label className="block font-semibold text-zinc-300 mb-1">Description</label>
-                <textarea
-                  value={editStoreForm.description}
-                  onChange={(e) => setEditStoreForm({ ...editStoreForm, description: e.target.value })}
-                  rows={3}
-                  placeholder="Describe your store, specialties, and business hours..."
-                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white focus:outline-none focus:border-purple-400 resize-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-zinc-300 mb-1">Phone Number</label>
-                  <input
-                    type="text"
-                    value={editStoreForm.phone}
-                    onChange={(e) => setEditStoreForm({ ...editStoreForm, phone: e.target.value })}
-                    placeholder="(415) 555-0100"
-                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white focus:outline-none focus:border-purple-400"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-zinc-300 mb-1">Website URL</label>
-                  <input
-                    type="text"
-                    value={editStoreForm.website}
-                    onChange={(e) => setEditStoreForm({ ...editStoreForm, website: e.target.value })}
-                    placeholder="https://example.com"
-                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white focus:outline-none focus:border-purple-400"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-zinc-300 mb-1">Physical Address</label>
-                <input
-                  type="text"
-                  value={editStoreForm.address}
-                  onChange={(e) => setEditStoreForm({ ...editStoreForm, address: e.target.value })}
-                  required
-                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white focus:outline-none focus:border-purple-400"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-800">
-                <button
-                  type="button"
-                  onClick={() => setEditStoreModal(null)}
-                  className="py-2 px-4 rounded-xl border border-zinc-800 bg-zinc-950 hover:bg-zinc-800 text-zinc-300 font-semibold"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmittingStoreProfile}
-                  className="py-2 px-5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold flex items-center gap-1.5 shadow-lg shadow-purple-600/20 disabled:opacity-50"
-                >
-                  {isSubmittingStoreProfile && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>Save Store Changes</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Delete / Archive Confirmation Modal */}
+      <DeleteStoreModal
+        isOpen={!!deleteStoreModal}
+        store={deleteStoreModal}
+        onClose={() => setDeleteStoreModal(null)}
+        onSuccess={(deletedStoreId) => handleStoreDeleted(deletedStoreId)}
+      />
 
       {/* Photo Upload Modal for Store Owner */}
       {activeStoreForUpload && (

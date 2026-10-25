@@ -133,11 +133,14 @@ export interface OwnerDashboardData {
     id: string;
     name: string;
     address: string;
+    category?: string;
     city?: string;
+    email?: string;
     coverImage?: string;
     description?: string;
     phone?: string;
     website?: string;
+    isActive?: boolean;
     createdAt: string;
     totalRatings: number;
     averageRating: number;
