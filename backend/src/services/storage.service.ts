@@ -73,7 +73,7 @@ export class StorageService {
       return new Promise<StoredFileResult>((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
-            folder: `nexaprime/${folder}`,
+            folder: `ratelocal/${folder}`,
             resource_type: 'image',
             format: mimeType.split('/')[1] || 'jpg',
           },

@@ -1,6 +1,6 @@
 {
-  "name": "NexaPrime Store Rating Platform",
-  "short_name": "NexaPrime",
+  "name": "RateLocal — Store Rating Platform",
+  "short_name": "RateLocal",
   "description": "Discover businesses, submit ratings, and analyze merchant performance.",
   "start_url": "/",
   "display": "standalone",

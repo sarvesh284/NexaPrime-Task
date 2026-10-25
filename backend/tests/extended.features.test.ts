@@ -222,7 +222,7 @@ describe('Extended Platform Features (Owner Replies, History, Notifications, Tre
     await NotificationModel.create({
       userId,
       type: 'SYSTEM',
-      title: 'Welcome to NexaPrime',
+      title: 'Welcome to RateLocal',
       message: 'Explore local stores and submit ratings today.',
       isRead: false,
     });

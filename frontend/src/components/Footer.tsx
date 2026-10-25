@@ -12,7 +12,7 @@ export const Footer: React.FC = () => {
           <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 dark:text-amber-400">
             <Store className="w-4 h-4" />
           </div>
-          <span className="font-bold text-sm text-slate-900 dark:text-white">NexaPrime Store Rating Platform</span>
+          <span className="font-bold text-sm text-slate-900 dark:text-white">RateLocal Store Rating Platform</span>
         </div>
 
         <div className="flex items-center gap-6 text-xs text-slate-500 dark:text-zinc-400">
@@ -34,7 +34,7 @@ export const Footer: React.FC = () => {
         </div>
 
         <div className="text-slate-500 dark:text-zinc-500 text-center md:text-right">
-          <p>© 2026 NexaPrime Maharashtra Edition. Production-Grade Implementation.</p>
+          <p>© 2026 RateLocal Maharashtra Edition. Production-Grade Implementation.</p>
         </div>
       </div>
     </footer>

@@ -8,7 +8,7 @@ import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 
 export const metadata: Metadata = {
-  title: 'NexaPrime Store Rating — Discover & Review Local Stores',
+  title: 'RateLocal — Discover & Review Local Stores',
   description: 'A modern, secure store rating platform where users discover businesses, submit ratings, and store owners analyze performance metrics.',
   manifest: '/manifest.json',
 };
@@ -25,7 +25,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                var theme = localStorage.getItem('nexaprime_theme');
+                var theme = localStorage.getItem('ratelocal_theme') || localStorage.getItem('nexaprime_theme');
                 if (theme === 'dark') {
                   document.documentElement.classList.add('dark');
                   document.documentElement.style.colorScheme = 'dark';

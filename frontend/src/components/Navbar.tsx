@@ -42,8 +42,8 @@ export const Navbar: React.FC = () => {
             <Store className="w-5 h-5 font-bold" />
           </div>
           <div>
-            <span className="font-extrabold text-lg tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5">
-              NexaPrime <span className="text-amber-600 dark:text-amber-400 font-semibold text-sm">Rating</span>
+            <span className="font-extrabold text-lg tracking-tight text-slate-900 dark:text-white flex items-center">
+              Rate<span className="text-amber-600 dark:text-amber-400 font-extrabold">Local</span>
             </span>
           </div>
         </Link>

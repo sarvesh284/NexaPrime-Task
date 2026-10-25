@@ -117,7 +117,7 @@ export default function MyRatingsPage() {
               <span>My Review History</span>
             </h1>
             <p className="text-zinc-400 text-sm mt-1">
-              Track, view, and update all the ratings and feedback you have submitted on NexaPrime.
+              Track, view, and update all the ratings and feedback you have submitted on RateLocal.
             </p>
           </div>
           <div className="flex items-center gap-2 self-start sm:self-auto">

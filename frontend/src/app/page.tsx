@@ -85,7 +85,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 text-xs font-semibold uppercase tracking-wider mb-8">
             <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            <span>NexaPrime Store Rating Platform &bull; Maharashtra Edition</span>
+            <span>RateLocal Store Rating Platform &bull; Maharashtra Edition</span>
           </div>
 
           <h1 className="text-4xl sm:text-6xl font-black text-slate-900 dark:text-white tracking-tight max-w-4xl mx-auto leading-tight sm:leading-none">

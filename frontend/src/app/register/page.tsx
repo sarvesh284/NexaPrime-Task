@@ -151,7 +151,7 @@ function RegisterFormContent() {
         role: parseResult.data.role,
       });
 
-      success(`Welcome to NexaPrime, ${newUser.name}!`);
+      success(`Welcome to RateLocal, ${newUser.name}!`);
 
       if (newUser.role === 'STORE_OWNER') {
         router.push('/owner/dashboard');

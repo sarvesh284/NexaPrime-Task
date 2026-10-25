@@ -22,7 +22,7 @@ const envSchema = z.object({
   SMTP_SECURE: z.string().transform((v) => v === 'true').default('false'),
   SMTP_USER: z.string().optional().default(''),
   SMTP_PASS: z.string().optional().default(''),
-  EMAIL_FROM: z.string().default('NexaPrime Platform <noreply@nexaprime.com>'),
+  EMAIL_FROM: z.string().default('RateLocal Platform <noreply@ratelocal.com>'),
 
   // Bayesian Rating Weight
   BAYESIAN_MIN_RATINGS: z.string().transform(Number).default('5'),

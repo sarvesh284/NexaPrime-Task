@@ -12,7 +12,7 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-const THEME_STORAGE_KEY = 'nexaprime_theme';
+const THEME_STORAGE_KEY = 'ratelocal_theme';
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Light theme is the default for new visitors as per product requirements
@@ -22,7 +22,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Initialize theme from localStorage on client mount, defaulting to 'light'
   useEffect(() => {
     try {
-      const stored = localStorage.getItem(THEME_STORAGE_KEY);
+      const stored = localStorage.getItem(THEME_STORAGE_KEY) || localStorage.getItem('nexaprime_theme');
       if (stored === 'dark' || stored === 'light') {
         setThemeState(stored);
         applyThemeClass(stored);
